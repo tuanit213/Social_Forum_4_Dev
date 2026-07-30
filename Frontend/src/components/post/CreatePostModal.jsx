@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import rehypeSanitize from 'rehype-sanitize';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
   const [title, setTitle] = useState("");
@@ -153,15 +153,25 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
                       code({ inline, className, children, ...props }) {
                         const match = /language-(\w+)/.exec(className || '');
                         return !inline ? (
-                          <SyntaxHighlighter
-                            style={dracula}
-                            language={match ? match[1] : 'text'}
-                            PreTag="div"
-                            className="rounded-md border border-white/[0.05] !my-4 !bg-[#282a36] !font-mono !text-[14px]"
-                            {...props}
-                          >
-                            {String(children).replace(/\n$/, '')}
-                          </SyntaxHighlighter>
+                          <div className="my-5 rounded-lg overflow-hidden bg-[#0B0B0C] border border-white/[0.04]">
+                            <SyntaxHighlighter
+                              style={vscDarkPlus}
+                              language={match ? match[1] : 'text'}
+                              PreTag="div"
+                              showLineNumbers={true}
+                              lineNumberStyle={{ minWidth: '3em', paddingRight: '1em', color: '#6e7681', textAlign: 'right' }}
+                              customStyle={{
+                                margin: 0,
+                                padding: '12px 8px',
+                                background: '#0B0B0C',
+                                fontSize: '14px',
+                                lineHeight: '1.6',
+                              }}
+                              {...props}
+                            >
+                              {String(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
+                          </div>
                         ) : (
                           <code className="bg-white/10 text-[#00a2ff] px-1.5 py-0.5 rounded-md text-sm font-mono" {...props}>
                             {children}

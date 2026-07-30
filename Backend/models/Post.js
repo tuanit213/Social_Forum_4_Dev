@@ -46,13 +46,11 @@ const postSchema = new mongoose.Schema({
     ref: 'User' 
   }],
   
-  // Bày tỏ cảm xúc khác (reactions đếm số lượng cho đơn giản hoặc có thể mở rộng lưu objectId)
-  reactions: {
-    love: { type: Number, default: 0 },
-    haha: { type: Number, default: 0 },
-    wow: { type: Number, default: 0 },
-    sad: { type: Number, default: 0 },
-  },
+  // Bày tỏ cảm xúc khác (reactions linh hoạt với Emoji)
+  reactions: [{
+    emoji: { type: String, required: true },
+    users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+  }],
 
   views: { 
     type: Number, 

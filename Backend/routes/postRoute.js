@@ -1,5 +1,5 @@
 import express from 'express';
-import { createPost, getPosts } from '../controllers/postController.js';
+import { createPost, getPosts, updatePost, deletePost, reactPost } from '../controllers/postController.js';
 import { verifyToken } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -10,5 +10,14 @@ router.post('/', verifyToken, createPost);
 // Endpoint: GET /api/posts - Lấy danh sách bài viết (Có thể cho phép khách xem hoặc bắt đăng nhập)
 // Tạm thời bắt đăng nhập để đồng nhất với layout
 router.get('/', verifyToken, getPosts);
+
+// Endpoint: PUT /api/posts/:id - Sửa bài viết (Chỉ tác giả)
+router.put('/:id', verifyToken, updatePost);
+
+// Endpoint: DELETE /api/posts/:id - Xóa bài viết (Chỉ tác giả)
+router.delete('/:id', verifyToken, deletePost);
+
+// Endpoint: POST /api/posts/:id/react - Thả/Hủy thả cảm xúc (Emoji)
+router.post('/:id/react', verifyToken, reactPost);
 
 export default router;

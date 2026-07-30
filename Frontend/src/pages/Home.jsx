@@ -1,14 +1,33 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Shield } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import CreatePostWidget from "@/components/post/CreatePostWidget";
 import CreatePostModal from "@/components/post/CreatePostModal";
+import PostCard from "@/components/post/PostCard";
 import api from "@/services/authService";
 
 export default function Home() {
   const { user } = useOutletContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [posts, setPosts] = useState([]); // Temporary local state to show new posts
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch bài viết từ API
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const res = await api.get("/posts");
+        if (res.data.success) {
+          setPosts(res.data.posts);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải bài viết:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPosts();
+  }, []);
 
   const handleCreatePost = async (postData) => {
     try {
@@ -61,45 +80,17 @@ export default function Home() {
           </p>
         </div>
         
-        {/* Hiển thị bài viết vừa đăng (Tạm thời) */}
-        {posts.map(post => (
-           <div key={post._id} className="bg-[#1C1C1E] border border-white/[0.04] rounded-2xl p-4 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00a2ff] to-[#0088cc] flex items-center justify-center font-bold text-white">
-                {user?.displayName?.[0] || 'U'}
-              </div>
-              <div>
-                <p className="font-mono font-bold text-[15px] text-white/90">{user?.displayName}</p>
-                <p className="font-mono text-[11px] text-white/40">Vừa xong</p>
-              </div>
-            </div>
-            {post.title && <h3 className="font-mono font-bold text-lg text-white/90">{post.title}</h3>}
-            {/* Tạm hiển thị text thô, phần hiển thị Markdown chi tiết sẽ làm ở task sau */}
-            <p className="text-white/80 font-mono text-[14px] leading-relaxed line-clamp-3">
-              {post.content}
-            </p>
-            {post.tags?.length > 0 && (
-              <div className="flex gap-2 pt-2">
-                {post.tags.map(tag => (
-                  <span key={tag} className="text-[#00a2ff] text-[12px] font-mono">#{tag}</span>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-
-        {/* Mockup Post Cũ */}
-        <div className="bg-[#1C1C1E] border border-white/[0.04] rounded-2xl p-4 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/10" />
-            <div>
-              <p className="font-mono font-bold text-[15px] text-white/90">System Admin</p>
-              <p className="font-mono text-[11px] text-white/40">1 giờ trước</p>
-            </div>
-          </div>
-          <p className="text-white/80 font-mono text-[14px] leading-relaxed">
-            Layout mới tuyệt vời quá! Nó giúp việc hiển thị luồng thông tin tốt hơn và hỗ trợ tương lai cho việc mở rộng tính năng.
-          </p>
+        {/* Hiển thị bài viết */}
+        <div className="space-y-4">
+          {posts.map(post => (
+            <PostCard 
+              key={post._id} 
+              post={post} 
+              currentUser={user} 
+              onPostDeleted={(deletedId) => setPosts(posts.filter(p => p._id !== deletedId))}
+              onPostUpdated={(updatedPost) => setPosts(posts.map(p => p._id === updatedPost._id ? updatedPost : p))}
+            />
+          ))}
         </div>
 
       </div>

@@ -9,6 +9,7 @@ import { notFound, errorHandler } from "./middlewares/errorMiddleware.js";
 import authRoutes from "./routes/authRoute.js";
 import postRoutes from "./routes/postRoute.js";
 import userRoutes from "./routes/userRoute.js";
+import commentRoutes from "./routes/commentRoute.js";
 import sampleRoutes from "./routes/sampleRoutes.js";
 import { getAllowedOrigins } from "./utils/securityConfig.js";
 
@@ -72,6 +73,7 @@ app.get("/", (req, res) => {
 app.use("/api/sample", sampleRoutes);
 app.use("/api/auth", authLimiter, requireDBConnection, authRoutes);
 app.use("/api/posts", requireDBConnection, postRoutes);
+app.use("/api/comments", requireDBConnection, commentRoutes);
 app.use("/api/users", requireDBConnection, userRoutes);
 
 app.use(notFound);
