@@ -1,35 +1,38 @@
 import { Link, useLocation } from "react-router-dom";
-
-// Import SVGs
-import HomeIcon from "@/assets/icon/Home.svg";
-import GroupChatIcon from "@/assets/icon/Message.svg";
-import BattleCodeIcon from "@/assets/icon/Battle.svg";
-import DevCompaniesIcon from "@/assets/icon/Companies.svg";
-import LearnIcon from "@/assets/icon/Learn.svg";
-import DevChallengesIcon from "@/assets/icon/Cup.svg";
-import DevHelpIcon from "@/assets/icon/Question.svg";
-import TrendingGithubIcon from "@/assets/icon/Trending.svg";
-import SettingsIcon from "@/assets/icon/Setting.svg";
+import {
+  BookOpen,
+  Building2,
+  CircleHelp,
+  Home,
+  MessageSquare,
+  Settings,
+  Swords,
+  TrendingUp,
+  Trophy,
+} from "lucide-react";
 
 export default function LeftSidebar() {
   const location = useLocation();
+  const trendingLanguages = ["JavaScript", "TypeScript", "Python", "Go", "Rust"];
+  const activeLanguage = new URLSearchParams(location.search).get("language") || "";
 
   const navItems = [
-    { icon: HomeIcon, label: "Home", path: "/" },
-    { icon: GroupChatIcon, label: "Group Chat", path: "/group-chat" },
-    { icon: BattleCodeIcon, label: "Battle Code", path: "/battle-code" },
-    { icon: DevCompaniesIcon, label: "Dev Companies", path: "/companies" },
-    { icon: LearnIcon, label: "Learn", path: "/learn" },
-    { icon: DevChallengesIcon, label: "Dev Challenges", path: "/challenges" },
-    { icon: DevHelpIcon, label: "Dev Help", path: "/help" },
-    { icon: TrendingGithubIcon, label: "Trending GitHub", path: "/trending" },
-    { icon: SettingsIcon, label: "Settings", path: "/settings" },
+    { icon: Home, label: "Home", path: "/" },
+    { icon: MessageSquare, label: "Group Chat", path: "/group-chat" },
+    { icon: Swords, label: "Battle Code", path: "/battle-code" },
+    { icon: Building2, label: "Dev Companies", path: "/companies" },
+    { icon: BookOpen, label: "Learn", path: "/learn" },
+    { icon: Trophy, label: "Dev Challenges", path: "/challenges" },
+    { icon: CircleHelp, label: "Dev Help", path: "/help" },
+    { icon: TrendingUp, label: "Trending GitHub", path: "/trending" },
+    { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
   return (
-    <aside className="w-64 h-[calc(100vh-64px)] sticky top-16 hidden md:flex flex-col py-4 px-3 overflow-y-auto custom-scrollbar border-r border-white/[0.04]">
+    <aside className="w-64 h-[calc(100vh-64px)] sticky top-16 hidden md:flex flex-col py-4 px-3 overflow-y-auto custom-scrollbar border-r border-[var(--border)]">
       <nav className="flex-1 space-y-1">
         {navItems.map((item) => {
+          const Icon = item.icon;
           const isActive = location.pathname === item.path;
           return (
             <Link
@@ -37,15 +40,11 @@ export default function LeftSidebar() {
               to={item.path}
               className={`flex items-center gap-4 px-3 py-3 rounded-lg transition-all duration-200 group ${
                 isActive 
-                  ? "bg-[#2C2C2E] text-white" 
-                  : "text-[#CCCCCC] hover:bg-white/[0.04] hover:text-white"
+                  ? "bg-[var(--bg-elevated)] text-[var(--text-primary)]" 
+                  : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
-              <img 
-                src={item.icon} 
-                alt={item.label} 
-                className={`w-5 h-5 transition-opacity ${isActive ? "opacity-100 brightness-150" : "opacity-80 group-hover:opacity-100"}`} 
-              />
+              <Icon className={`w-5 h-5 shrink-0 transition-opacity ${isActive ? "opacity-100" : "opacity-75 group-hover:opacity-100"}`} />
               <span className="text-[14px] font-mono tracking-wide">
                 {item.label}
               </span>
@@ -53,6 +52,37 @@ export default function LeftSidebar() {
           );
         })}
       </nav>
+
+      {location.pathname === "/trending" && (
+        <div className="border-t border-[var(--border)] pt-4">
+          <p className="mb-3 px-3 font-mono text-[11px] text-[var(--text-secondary)]">Popular Tags</p>
+          <div className="flex flex-wrap gap-2 px-3">
+            <Link
+              to="/trending"
+              className={`rounded-md border px-2 py-1 font-mono text-[11px] transition-colors ${
+                activeLanguage === ""
+                  ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                  : "border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              All
+            </Link>
+            {trendingLanguages.map((language) => (
+              <Link
+                key={language}
+                to={`/trending?language=${encodeURIComponent(language)}`}
+                className={`rounded-md border px-2 py-1 font-mono text-[11px] transition-colors ${
+                  activeLanguage === language
+                    ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                    : "border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                }`}
+              >
+                {language}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

@@ -31,7 +31,7 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
     try {
       await api.delete(`/posts/${post._id}`);
       if (onPostDeleted) onPostDeleted(post._id);
-    } catch (error) {
+    } catch {
       alert("Lỗi khi xóa bài viết");
     }
   };
@@ -44,7 +44,7 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
         setIsEditing(false);
         if (onPostUpdated) onPostUpdated(res.data.post);
       }
-    } catch (error) {
+    } catch {
       alert("Lỗi khi cập nhật bài viết");
     }
   };
@@ -59,17 +59,6 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
       }
     } catch (error) {
       console.error("Lỗi thả cảm xúc:", error);
-    }
-  };
-
-  const handleToggleReaction = async (emoji) => {
-    try {
-      const res = await api.post(`/posts/${post._id}/react`, { emoji });
-      if (res.data.success) {
-        setLocalPost({ ...localPost, reactions: res.data.reactions });
-      }
-    } catch (error) {
-      console.error("Lỗi toggle cảm xúc:", error);
     }
   };
 
@@ -102,21 +91,21 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
     .map(r => r.emoji);
 
   return (
-    <div className="bg-[#171718] rounded-2xl p-6 shadow-sm border border-white/[0.02] text-[#D1D5DB]">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6 text-[var(--text-primary)] shadow-sm">
       {/* Header: User Info & Options */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#00a2ff] flex items-center justify-center font-bold text-white shadow-md text-lg">
+          <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center font-bold text-white shadow-md text-lg">
             {initial}
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
             <div className="flex items-center gap-2">
-              <p className="font-mono text-[16px] text-white/90 font-medium">{authorName}</p>
-              <span className="text-white/30 text-xs hidden sm:inline">•</span>
-              <p className="font-mono text-[13px] text-white/40 hidden sm:inline">{formattedDate}</p>
+              <p className="font-mono text-[16px] text-[var(--text-primary)] font-medium">{authorName}</p>
+              <span className="text-[var(--text-secondary)] text-xs hidden sm:inline">•</span>
+              <p className="font-mono text-[13px] text-[var(--text-secondary)] hidden sm:inline">{formattedDate}</p>
             </div>
             {/* Tag (Tutorial) */}
-            <span className="px-2 py-0.5 rounded-md bg-[#00a2ff]/10 text-[#00a2ff] text-[12px] font-mono flex items-center gap-1 w-fit mt-1 sm:mt-0">
+            <span className="px-2 py-0.5 rounded-md bg-[var(--bg-primary)] text-[var(--accent)] text-[12px] font-mono flex items-center gap-1 w-fit mt-1 sm:mt-0">
               {'</> Tutorial'}
             </span>
           </div>
@@ -127,21 +116,21 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
           <div className="relative">
             <button
               onClick={() => setShowDropdown(!showDropdown)}
-              className="p-1.5 text-white/40 hover:text-white/90 hover:bg-white/5 rounded-full transition"
+              className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded-full transition"
             >
               <MoreHorizontal size={18} />
             </button>
             {showDropdown && (
-              <div className="absolute right-0 mt-1 w-40 bg-[#252527] border border-white/[0.04] rounded-lg shadow-xl overflow-hidden z-10">
+              <div className="absolute right-0 mt-1 w-40 bg-[var(--bg-primary)] border border-[var(--border)] rounded-lg shadow-xl overflow-hidden z-10">
                 <button
                   onClick={() => { setIsEditing(true); setShowDropdown(false); }}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-white/80 hover:bg-white/5 transition"
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition"
                 >
                   <Edit size={14} /> Chỉnh sửa
                 </button>
                 <button
                   onClick={() => { setShowDeleteConfirm(true); setShowDropdown(false); }}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-400 hover:bg-red-400/10 transition"
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-[var(--danger)] hover:bg-[var(--bg-elevated)] transition"
                 >
                   <Trash2 size={14} /> Xóa bài
                 </button>
@@ -152,35 +141,35 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
       </div>
 
       {/* Main Content Area with Left Border */}
-      <div className="pl-5 ml-[19px] border-l-[2px] border-[#00a2ff]/20 space-y-5 pb-2">
+      <div className="pl-5 ml-[19px] border-l-[2px] border-[var(--accent)] space-y-5 pb-2">
         {/* Title */}
-        {post.title && <h2 className="font-mono font-bold text-[20px] text-white/90 leading-snug">{post.title}</h2>}
+        {post.title && <h2 className="font-mono font-bold text-[20px] text-[var(--text-primary)] leading-snug">{post.title}</h2>}
 
         {/* Content & Code */}
         {isEditing ? (
           <div className="space-y-3">
             <textarea
-              className="w-full min-h-[120px] bg-[#1C1C1E] text-white/90 border border-white/10 rounded-lg p-3 font-mono text-sm focus:outline-none focus:border-[#00a2ff]/50"
+              className="w-full min-h-[120px] bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border)] rounded-lg p-3 font-mono text-sm focus:outline-none focus:border-[var(--accent)]"
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
             />
             <div className="flex justify-end gap-2">
-              <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 rounded-lg text-sm font-medium text-white/60 hover:bg-white/5">
+              <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]">
                 Hủy
               </button>
-              <button onClick={handleUpdate} className="px-3 py-1.5 rounded-lg text-sm font-medium bg-[#00a2ff] text-white hover:bg-[#0088cc]">
+              <button onClick={handleUpdate} className="px-3 py-1.5 rounded-lg text-sm font-medium bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]">
                 Lưu
               </button>
             </div>
           </div>
         ) : (
-          <div className="prose prose-invert max-w-none prose-p:font-mono prose-p:text-[15px] prose-p:text-slate-300 prose-p:leading-relaxed">
+          <div className="prose max-w-none prose-p:font-mono prose-p:text-[15px] prose-p:text-[var(--text-primary)] prose-p:leading-relaxed">
             <ReactMarkdown
               components={{
-                code({ node, inline, className, children, ...props }) {
+                code({ inline, className, children, ...props }) {
                   const match = /language-(\w+)/.exec(className || '');
                   return !inline ? (
-                    <div className="my-5 rounded-lg overflow-hidden bg-[#0B0B0C] border border-white/[0.04]">
+                    <div className="my-5 rounded-lg overflow-hidden bg-[var(--bg-primary)] border border-[var(--border)]">
                       <SyntaxHighlighter
                         style={vscDarkPlus}
                         language={match ? match[1] : 'text'}
@@ -190,7 +179,7 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
                         customStyle={{
                           margin: 0,
                           padding: '12px 8px',
-                          background: '#0B0B0C',
+                          background: 'var(--bg-primary)',
                           fontSize: '14px',
                           lineHeight: '1.6',
                         }}
@@ -200,7 +189,7 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
                       </SyntaxHighlighter>
                     </div>
                   ) : (
-                    <code className="bg-white/10 text-[#00a2ff] rounded px-1.5 py-0.5 text-[14px] font-mono" {...props}>
+                    <code className="bg-[var(--bg-elevated)] text-[var(--accent)] rounded px-1.5 py-0.5 text-[14px] font-mono" {...props}>
                       {children}
                     </code>
                   );
@@ -216,7 +205,7 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
         {localPost.tags?.length > 0 && (
           <div className="flex gap-2 flex-wrap pt-2">
             {localPost.tags.map(tag => (
-              <span key={tag} className="text-slate-400 text-[13px] font-mono hover:text-[#00a2ff] cursor-pointer transition">
+              <span key={tag} className="text-[var(--text-secondary)] text-[13px] font-mono hover:text-[var(--accent)] cursor-pointer transition">
                 #{tag}
               </span>
             ))}
@@ -225,7 +214,7 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
       </div>
 
       {/* Interactions Footer */}
-      <div className="flex items-center justify-between pt-4 mt-2 border-t border-white/[0.04] px-1 relative">
+      <div className="flex items-center justify-between pt-4 mt-2 border-t border-[var(--border)] px-1 relative">
         <div className="flex items-center gap-6">
           {/* Reaction Area with Hover Menu */}
           <div 
@@ -242,7 +231,7 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
                   handleReaction('❤️'); // Default reaction if clicking empty heart
                 }
               }}
-              className="flex items-center gap-2 text-white/40 hover:text-white/80 transition font-mono text-[14px]"
+              className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition font-mono text-[14px]"
             >
               {(() => {
                 const userReaction = localPost.reactions?.find(r => r.users.includes(currentUserId));
@@ -264,7 +253,7 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
 
             {/* Hover Menu */}
             {isHoveringReact && (
-              <div className="absolute -top-12 left-0 bg-[#252527] border border-white/10 rounded-full shadow-2xl px-2 py-1.5 flex items-center gap-1 z-20 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <div className="absolute -top-12 left-0 bg-[var(--bg-primary)] border border-[var(--border)] rounded-full shadow-2xl px-2 py-1.5 flex items-center gap-1 z-20 animate-in fade-in slide-in-from-bottom-2 duration-200">
                 {DEFAULT_EMOJIS.map(emoji => (
                   <button
                     key={emoji}
@@ -274,10 +263,10 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
                     {emoji}
                   </button>
                 ))}
-                <div className="w-[1px] h-5 bg-white/10 mx-1"></div>
+                <div className="w-[1px] h-5 bg-[var(--border)] mx-1"></div>
                 <button
                   onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 rounded-full transition relative"
+                  className="w-8 h-8 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded-full transition relative"
                 >
                   <Plus size={16} />
                 </button>
@@ -299,19 +288,19 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
           {/* Comment Toggle */}
           <button 
             onClick={() => setShowComments(!showComments)}
-            className={`flex items-center gap-2 transition font-mono text-[14px] ${showComments ? 'text-[#00a2ff]' : 'text-white/40 hover:text-white/80'}`}
+            className={`flex items-center gap-2 transition font-mono text-[14px] ${showComments ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
           >
             <MessageSquare size={18} />
             <span>{localPost.commentsCount || 0}</span>
           </button>
 
-          <button className="flex items-center gap-2 text-white/40 hover:text-white/80 transition font-mono text-[14px]">
+          <button className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition font-mono text-[14px]">
             <Share2 size={18} />
             <span className="hidden sm:inline">Share</span>
           </button>
         </div>
 
-        <button className="text-white/40 hover:text-white/80 transition">
+        <button className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
           <Bookmark size={18} />
         </button>
       </div>

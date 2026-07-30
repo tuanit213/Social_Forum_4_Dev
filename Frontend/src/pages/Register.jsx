@@ -22,7 +22,7 @@ function FieldError({ message }) {
   );
 }
 
-// ─── SUB-COMPONENT: Banner lỗi API ───────────────────────────────────────────
+// ─── SUB-COMPONENT: Banner lỗi đăng ký ───────────────────────────────────────
 function ApiErrorBanner({ message }) {
   if (!message) return null;
   return (

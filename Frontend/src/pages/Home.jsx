@@ -12,7 +12,6 @@ export default function Home() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch bài viết từ API
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -47,8 +46,8 @@ export default function Home() {
   return (
     <div className="w-full">
       {/* Header cho cột giữa */}
-      <div className="sticky top-16 z-30 bg-[#171718]/80 backdrop-blur-md border-b border-white/[0.04] px-4 py-3">
-        <h2 className="text-xl font-bold text-white/90">Trang chủ</h2>
+      <div className="sticky top-16 z-30 bg-[var(--bg-primary)]/90 backdrop-blur-md border-b border-[var(--border)] px-4 py-3">
+        <h2 className="text-xl font-bold text-[var(--text-primary)]">Trang chủ</h2>
       </div>
 
       <div className="p-4 space-y-6">
@@ -65,24 +64,28 @@ export default function Home() {
 
         {/* Welcome Card */}
         <div className="text-center animate-in fade-in slide-in-from-bottom-4 duration-700 py-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-secondary)] border border-[var(--border)] text-[var(--success)] text-xs font-semibold uppercase tracking-wider mb-6">
             <Shield size={14} />
             Phiên bản an toàn
           </div>
-          <h2 className="text-3xl font-bold tracking-tight mb-4 text-white">
+          <h2 className="text-3xl font-bold tracking-tight mb-4 text-[var(--text-primary)]">
             Chào mừng trở lại, <br/>
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 to-indigo-400">
+            <span className="text-[var(--accent)]">
               {user?.displayName || user?.username}
             </span>
           </h2>
-          <p className="text-white/40 text-sm max-w-md mx-auto">
-            Giao diện 3 cột đã được thiết lập thành công. Feed bài viết sẽ hiển thị ở khu vực này.
+          <p className="text-[var(--text-secondary)] text-sm max-w-md mx-auto">
+            Chia sẻ câu hỏi, ghi chú kỹ thuật và kinh nghiệm lập trình với cộng đồng.
           </p>
         </div>
-        
-        {/* Hiển thị bài viết */}
         <div className="space-y-4">
-          {posts.map(post => (
+          {loading && (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-6 text-center">
+              <p className="font-mono text-sm text-[var(--text-secondary)]">Đang tải bài viết...</p>
+            </div>
+          )}
+
+          {!loading && posts.map(post => (
             <PostCard 
               key={post._id} 
               post={post} 
@@ -91,6 +94,15 @@ export default function Home() {
               onPostUpdated={(updatedPost) => setPosts(posts.map(p => p._id === updatedPost._id ? updatedPost : p))}
             />
           ))}
+
+          {!loading && posts.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-6 text-center">
+              <p className="font-mono text-sm text-[var(--text-primary)]">Chưa có bài viết nào.</p>
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                Hãy tạo bài viết đầu tiên để bắt đầu cuộc thảo luận.
+              </p>
+            </div>
+          )}
         </div>
 
       </div>

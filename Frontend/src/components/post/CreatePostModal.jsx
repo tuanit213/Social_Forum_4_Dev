@@ -7,8 +7,10 @@ import remarkBreaks from 'remark-breaks';
 import rehypeSanitize from 'rehype-sanitize';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { useTheme } from "@/contexts/useTheme";
 
 export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
+  const { theme, editorFont } = useTheme();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState([]);
@@ -16,7 +18,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const editorRef = useRef(null);
 
-  const handleEditorDidMount = (editor, monaco) => {
+  const handleEditorDidMount = (editor) => {
     editorRef.current = editor;
   };
 
@@ -77,7 +79,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div 
-        className="w-full max-w-5xl bg-[#1C1C1E] border border-white/[0.08] rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+        className="w-full max-w-5xl bg-[var(--bg-secondary)] border border-[var(--border)] rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
       >
 
 
@@ -90,50 +92,50 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
             value={title}
             onChange={e => setTitle(e.target.value)}
             placeholder="Title of your post"
-            className="w-full bg-transparent border-none outline-none font-mono text-xl text-white/90 placeholder:text-white/30 font-bold"
+            className="w-full bg-transparent border-none outline-none font-mono text-xl text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] font-bold"
           />
 
           {/* Toolbar */}
-          <div className="flex items-center gap-1 bg-[#1A1A1A] border border-white/[0.04] p-1.5 rounded-lg">
-            <button onClick={() => insertMarkdown("**", "**")} className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded" title="Bold">
+          <div className="flex items-center gap-1 bg-[var(--bg-primary)] border border-[var(--border)] p-1.5 rounded-lg">
+            <button onClick={() => insertMarkdown("**", "**")} className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded" title="Bold">
               <Bold size={14} />
             </button>
-            <button onClick={() => insertMarkdown("*", "*")} className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded" title="Italic">
+            <button onClick={() => insertMarkdown("*", "*")} className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded" title="Italic">
               <Italic size={14} />
             </button>
-            <div className="w-px h-4 bg-white/10 mx-1"></div>
-            <button onClick={() => insertMarkdown("[", "](url)")} className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded" title="Link">
+            <div className="w-px h-4 bg-[var(--border)] mx-1"></div>
+            <button onClick={() => insertMarkdown("[", "](url)")} className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded" title="Link">
               <Link size={14} />
             </button>
-            <button onClick={() => insertMarkdown("![Hình ảnh](", ")")} className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded" title="Image">
+            <button onClick={() => insertMarkdown("![Hình ảnh](", ")")} className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded" title="Image">
               <ImageIcon size={14} />
             </button>
-            <button onClick={() => insertMarkdown("![Video](", ")")} className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded" title="Video">
+            <button onClick={() => insertMarkdown("![Video](", ")")} className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded" title="Video">
               <Video size={14} />
             </button>
-            <div className="w-px h-4 bg-white/10 mx-1"></div>
-            <button onClick={() => insertMarkdown("```\n", "\n```")} className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded" title="Code Block">
+            <div className="w-px h-4 bg-[var(--border)] mx-1"></div>
+            <button onClick={() => insertMarkdown("```\n", "\n```")} className="p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] rounded" title="Code Block">
               <Code size={14} />
             </button>
           </div>
 
           {/* Editor / Preview Area */}
-          <div className="flex-1 w-full min-h-[400px] mt-2 rounded-lg overflow-hidden border border-white/[0.04] focus-within:border-[#00a2ff]/50 transition-colors bg-[#1E1E1E] relative">
+          <div className="flex-1 w-full min-h-[400px] mt-2 rounded-lg overflow-hidden border border-[var(--border)] focus-within:border-[var(--accent)] transition-colors bg-[var(--bg-primary)] relative">
             <div className="absolute inset-0 flex flex-row">
               
               {/* Left: Monaco Editor */}
-              <div className="w-1/2 h-full border-r border-white/[0.04] pt-3 relative">
+              <div className="w-1/2 h-full border-r border-[var(--border)] pt-3 relative">
                 <Editor
                   height="100%"
                   language="markdown"
-                  theme="vs-dark"
+                  theme={theme === "light-studio" ? "vs-light" : "vs-dark"}
                   value={content}
                   onChange={(value) => setContent(value || "")}
                   onMount={handleEditorDidMount}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 14,
-                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    fontFamily: `${editorFont}, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`,
                     wordWrap: 'on',
                     padding: { top: 8 },
                     scrollBeyondLastLine: false,
@@ -153,7 +155,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
                       code({ inline, className, children, ...props }) {
                         const match = /language-(\w+)/.exec(className || '');
                         return !inline ? (
-                          <div className="my-5 rounded-lg overflow-hidden bg-[#0B0B0C] border border-white/[0.04]">
+                          <div className="my-5 overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-primary)]">
                             <SyntaxHighlighter
                               style={vscDarkPlus}
                               language={match ? match[1] : 'text'}
@@ -163,7 +165,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
                               customStyle={{
                                 margin: 0,
                                 padding: '12px 8px',
-                                background: '#0B0B0C',
+                                background: 'var(--bg-primary)',
                                 fontSize: '14px',
                                 lineHeight: '1.6',
                               }}
@@ -173,7 +175,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
                             </SyntaxHighlighter>
                           </div>
                         ) : (
-                          <code className="bg-white/10 text-[#00a2ff] px-1.5 py-0.5 rounded-md text-sm font-mono" {...props}>
+                          <code className="bg-[var(--bg-elevated)] text-[var(--accent)] px-1.5 py-0.5 rounded-md text-sm font-mono" {...props}>
                             {children}
                           </code>
                         );
@@ -183,7 +185,7 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
                     {content}
                   </ReactMarkdown>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-white/30 font-mono text-sm italic">
+                  <div className="h-full flex items-center justify-center text-[var(--text-secondary)] font-mono text-sm italic">
                     Preview area
                   </div>
                 )}
@@ -195,44 +197,44 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
           {/* Tags Input */}
           <div className="flex flex-wrap items-center gap-2 mt-2">
             {tags.map(tag => (
-              <span key={tag} className="flex items-center gap-1 px-2.5 py-1 bg-white/[0.05] border border-white/[0.1] rounded-md text-[12px] font-mono text-white/80">
+              <span key={tag} className="flex items-center gap-1 px-2.5 py-1 bg-[var(--bg-elevated)] border border-[var(--border)] rounded-md text-[12px] font-mono text-[var(--text-primary)]">
                 #{tag}
-                <button onClick={() => removeTag(tag)} className="hover:text-red-400">
+                <button onClick={() => removeTag(tag)} className="hover:text-[var(--danger)]">
                   <X size={12} />
                 </button>
               </span>
             ))}
             <div className="flex items-center flex-1 min-w-[200px]">
-              <span className="text-white/40 font-mono text-sm mr-2">#</span>
+              <span className="text-[var(--text-secondary)] font-mono text-sm mr-2">#</span>
               <input 
                 type="text"
                 value={tagInput}
                 onChange={e => setTagInput(e.target.value)}
                 onKeyDown={handleTagKeyDown}
                 placeholder="Add tags... (Press Enter)"
-                className="w-full bg-transparent border-none outline-none font-mono text-sm text-white/80 placeholder:text-white/30"
+                className="w-full bg-transparent border-none outline-none font-mono text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]"
               />
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-4 border-t border-white/[0.04] bg-white/[0.01]">
-          <div className="font-mono text-[11px] text-white/30">
+        <div className="flex items-center justify-between p-4 border-t border-[var(--border)] bg-[var(--bg-primary)]">
+          <div className="font-mono text-[11px] text-[var(--text-secondary)]">
             {content.length} characters // {tags.length} tags
           </div>
           
           <div className="flex items-center gap-3">
             <button 
               onClick={onClose}
-              className="px-4 py-2 text-sm font-mono text-white/60 hover:text-white transition-colors"
+              className="px-4 py-2 text-sm font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
               Cancel
             </button>
             <button 
               onClick={handleSubmit}
               disabled={isSubmitting || !content.trim()}
-              className="flex items-center gap-2 px-5 py-2 bg-[#00a2ff] hover:bg-[#0088cc] disabled:opacity-50 text-white rounded-lg font-mono text-sm font-bold transition-all shadow-[0_0_15px_rgba(0,162,255,0.3)] hover:shadow-[0_0_20px_rgba(0,162,255,0.5)]"
+              className="flex items-center gap-2 px-5 py-2 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-50 text-white rounded-lg font-mono text-sm font-bold transition-all"
             >
               <Send size={14} />
               {isSubmitting ? "Committing..." : "Commit Post"}
@@ -247,29 +249,29 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
           font-family: system-ui, -apple-system, sans-serif;
           font-size: 15px;
           line-height: 1.6;
-          color: rgba(255, 255, 255, 0.85);
+          color: var(--text-primary);
         }
         .custom-markdown-preview h1,
         .custom-markdown-preview h2,
         .custom-markdown-preview h3 {
-          color: white;
+          color: var(--text-primary);
           font-weight: 700;
           margin-top: 1.5em;
           margin-bottom: 0.5em;
         }
-        .custom-markdown-preview h1 { font-size: 1.8em; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.3em; }
+        .custom-markdown-preview h1 { font-size: 1.8em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
         .custom-markdown-preview h2 { font-size: 1.5em; }
         .custom-markdown-preview h3 { font-size: 1.25em; }
         .custom-markdown-preview p { margin-bottom: 1em; }
-        .custom-markdown-preview a { color: #00a2ff; text-decoration: none; }
+        .custom-markdown-preview a { color: var(--accent); text-decoration: none; }
         .custom-markdown-preview a:hover { text-decoration: underline; }
         .custom-markdown-preview ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
         .custom-markdown-preview ol { list-style-type: decimal; padding-left: 1.5em; margin-bottom: 1em; }
         .custom-markdown-preview li { margin-bottom: 0.25em; }
         .custom-markdown-preview blockquote {
-          border-left: 4px solid rgba(255,255,255,0.2);
+          border-left: 4px solid var(--border);
           padding-left: 1em;
-          color: rgba(255,255,255,0.6);
+          color: var(--text-secondary);
           margin-left: 0;
           margin-bottom: 1em;
         }

@@ -12,28 +12,31 @@ import TrendingGithub from "./pages/TrendingGithub";
 import Settings from "./pages/Settings";
 import ProfileDashboard from "./pages/ProfileDashboard";
 import MainLayout from "./layouts/MainLayout";
+import { ThemeProvider } from "./contexts/ThemeContext";
 import './App.css'
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/group-chat" element={<GroupChat />} />
-          <Route path="/battle-code" element={<BattleCode />} />
-          <Route path="/companies" element={<DevCompanies />} />
-          <Route path="/learn" element={<Learn />} />
-          <Route path="/challenges" element={<DevChallenges />} />
-          <Route path="/help" element={<DevHelp />} />
-          <Route path="/trending" element={<TrendingGithub />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/dashboard" element={<ProfileDashboard />} />
-        </Route>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Routes>
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <Routes>
+          <Route element={<MainLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/group-chat" element={<GroupChat />} />
+            <Route path="/battle-code" element={<BattleCode />} />
+            <Route path="/companies" element={<DevCompanies />} />
+            <Route path="/learn" element={<Learn />} />
+            <Route path="/challenges" element={<DevChallenges />} />
+            <Route path="/help" element={<DevHelp />} />
+            <Route path="/trending" element={<TrendingGithub />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/dashboard" element={<ProfileDashboard />} />
+          </Route>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 

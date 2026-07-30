@@ -42,13 +42,13 @@ export default function MainLayout() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen w-full bg-[#171718] text-white font-sans overflow-hidden">
+    <div className="min-h-screen w-full bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans overflow-hidden transition-colors duration-200">
       <Navbar user={user} />
 
       <div className="relative z-10 max-w-[1400px] mx-auto w-full pt-16 flex justify-center">
         <LeftSidebar />
 
-        <main className="flex-1 w-full max-w-2xl min-w-0 border-x border-white/[0.06] min-h-[calc(100vh-64px)]">
+        <main className="flex-1 w-full max-w-2xl min-w-0 border-x border-[var(--border)] min-h-[calc(100vh-64px)]">
           <Outlet context={{ user }} />
         </main>
 

@@ -72,24 +72,24 @@ const readNumber = (source, keys) => {
 const formatNumber = (value) => new Intl.NumberFormat("vi-VN").format(value);
 
 const githubInputClass =
-  "w-full rounded-md border border-[#30363d] bg-[#1E1E1E] px-3 py-[5px] font-sans text-sm leading-5 text-[#f0f6fc] outline-none transition-colors placeholder:text-[#8b949e] focus:border-[#1f6feb] focus:ring-1 focus:ring-[#1f6feb]";
+  "w-full rounded-md border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-[5px] font-sans text-sm leading-5 text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]";
 
 const githubTextareaClass = `${githubInputClass} min-h-[58px] resize-y`;
 
-const githubLabelClass = "font-sans text-sm font-semibold leading-5 text-[#f0f6fc]";
+const githubLabelClass = "font-sans text-sm font-semibold leading-5 text-[var(--text-primary)]";
 
 function MetricCard({ icon: Icon, value, label, tone }) {
   return (
-    <div className="rounded-lg border border-white/[0.08] bg-[#1A1A1C] px-4 py-4 transition-colors hover:border-[#0088cc]/35 hover:bg-white/[0.035]">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-4 py-4 transition-colors hover:border-[var(--accent)] hover:bg-[var(--bg-elevated)]">
       <div className="flex items-start gap-3">
         <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border ${tone}`}>
           <Icon size={20} strokeWidth={1.8} />
         </div>
         <div className="min-w-0">
-          <p className="whitespace-nowrap font-sans text-2xl font-bold leading-none tracking-normal text-white">
+          <p className="whitespace-nowrap font-sans text-2xl font-bold leading-none tracking-normal text-[var(--text-primary)]">
             {value}
           </p>
-          <p className="mt-2 break-words font-sans text-sm font-medium leading-snug tracking-normal text-white/58">
+          <p className="mt-2 break-words font-sans text-sm font-medium leading-snug tracking-normal text-[var(--text-secondary)]">
             {label}
           </p>
         </div>
@@ -100,11 +100,11 @@ function MetricCard({ icon: Icon, value, label, tone }) {
 
 function EmptyState({ onEdit }) {
   return (
-    <div className="rounded-lg border border-dashed border-white/[0.12] bg-white/[0.02] px-4 py-5">
-      <p className="font-mono text-sm text-white/55">Chưa có dữ liệu</p>
+    <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--bg-primary)] px-4 py-5">
+      <p className="font-mono text-sm text-[var(--text-secondary)]">Chưa có dữ liệu</p>
       <button
         onClick={onEdit}
-        className="mt-3 inline-flex items-center gap-2 rounded-md border border-[#0088cc]/30 bg-[#0088cc]/10 px-3 py-2 font-mono text-xs text-[#00A2FF] transition-colors hover:bg-[#0088cc]/20"
+        className="mt-3 inline-flex items-center gap-2 rounded-md border border-[var(--accent)] bg-[var(--bg-secondary)] px-3 py-2 font-mono text-xs text-[var(--accent)] transition-colors hover:bg-[var(--bg-elevated)]"
       >
         <Edit3 size={14} />
         Chỉnh sửa
@@ -117,7 +117,7 @@ function ReadOnlyEmpty() {
   return (
     <div
       aria-label="Chưa có dữ liệu"
-      className="min-h-[74px] rounded-lg border border-dashed border-white/[0.10] bg-white/[0.01]"
+      className="min-h-[74px] rounded-lg border border-dashed border-[var(--border)] bg-[var(--bg-primary)]"
     />
   );
 }
@@ -129,8 +129,8 @@ function TextList({ items }) {
     <div className="space-y-3">
       {items.map((item, index) => (
         <div key={`${item}-${index}`} className="flex gap-3">
-          <span className="mt-1.5 h-3 w-3 rounded-full border border-amber-400" />
-          <p className="font-sans text-sm leading-relaxed text-white/78">{item}</p>
+          <span className="mt-1.5 h-3 w-3 rounded-full border border-[var(--accent)]" />
+          <p className="font-sans text-sm leading-relaxed text-[var(--text-primary)]">{item}</p>
         </div>
       ))}
     </div>
@@ -142,21 +142,21 @@ function ModalShell({ title, error, onClose, onSubmit, children }) {
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 py-8">
       <form
         onSubmit={onSubmit}
-        className="max-h-full w-full max-w-xl overflow-y-auto rounded-lg border border-[#30363d] bg-[#1E1E1E] p-5 shadow-2xl"
+        className="max-h-full w-full max-w-xl overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] p-5 shadow-2xl"
       >
         <div className="mb-5 flex items-center justify-between gap-4">
-          <h3 className="font-sans text-lg font-semibold text-white">{title}</h3>
+          <h3 className="font-sans text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-md p-2 text-white/55 hover:bg-white/[0.06] hover:text-white"
+            className="rounded-md p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
           >
             <X size={18} />
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 rounded-md border border-red-400/20 bg-red-400/10 px-3 py-2 font-sans text-sm text-red-200">
+          <div className="mb-4 rounded-md border border-[var(--danger)] bg-[var(--bg-secondary)] px-3 py-2 font-sans text-sm text-[var(--danger)]">
             {error}
           </div>
         )}
@@ -172,14 +172,14 @@ function FormActions({ onCancel }) {
     <div className="mt-4 flex items-center gap-2">
       <button
         type="submit"
-        className="rounded-md bg-[#238636] px-3 py-[6px] font-sans text-xs font-semibold leading-5 text-white transition-colors hover:bg-[#2ea043] active:translate-y-px"
+        className="rounded-md bg-[var(--success)] px-3 py-[6px] font-sans text-xs font-semibold leading-5 text-white transition-colors hover:brightness-110 active:translate-y-px"
       >
         Save
       </button>
       <button
         type="button"
         onClick={onCancel}
-        className="rounded-md border border-[#30363d] bg-[#21262d] px-3 py-[6px] font-sans text-xs font-semibold leading-5 text-[#f0f6fc] transition-colors hover:border-[#8b949e] active:translate-y-px"
+        className="rounded-md border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-[6px] font-sans text-xs font-semibold leading-5 text-[var(--text-primary)] transition-colors hover:border-[var(--accent)] active:translate-y-px"
       >
         Cancel
       </button>
@@ -208,7 +208,7 @@ function TextInput({ label, value, onChange, rows = 1 }) {
 function IconInput({ icon: Icon, value, onChange, placeholder, type = "text" }) {
   return (
     <div className="grid grid-cols-[18px_minmax(0,1fr)] items-center gap-2">
-      <Icon size={17} strokeWidth={1.8} className="text-[#8b949e]" />
+      <Icon size={17} strokeWidth={1.8} className="text-[var(--text-secondary)]" />
       <input
         type={type}
         value={value}
@@ -305,37 +305,37 @@ export default function ProfileDashboard() {
         label: "Kinh nghiệm",
         value: formatNumber(readNumber(stats, ["experienceYears", "yearsOfExperience", "experience"])),
         icon: GraduationCap,
-        tone: "border-amber-400/25 bg-amber-400/10 text-amber-300",
+        tone: "border-[var(--accent)] bg-[var(--bg-secondary)] text-[var(--accent)]",
       },
       {
         label: "Khóa học",
         value: formatNumber(readNumber(stats, ["courseCount", "coursesCompleted", "courses"])),
         icon: BookOpenCheck,
-        tone: "border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
+        tone: "border-[var(--success)] bg-[var(--bg-secondary)] text-[var(--success)]",
       },
       {
         label: "Đóng góp post",
         value: formatNumber(readNumber(stats, ["postCount", "postsCount", "posts"])),
         icon: MessagesSquare,
-        tone: "border-sky-400/25 bg-sky-400/10 text-sky-300",
+        tone: "border-[var(--accent)] bg-[var(--bg-secondary)] text-[var(--accent)]",
       },
       {
         label: "Global rank",
         value: globalRank > 0 ? `#${formatNumber(globalRank)}` : "0",
         icon: TrendingUp,
-        tone: "border-violet-400/25 bg-violet-400/10 text-violet-300",
+        tone: "border-[var(--accent)] bg-[var(--bg-secondary)] text-[var(--accent)]",
       },
       {
         label: "Current streak",
         value: `${formatNumber(readNumber(stats, ["currentStreak", "streak"]))} day`,
         icon: Flame,
-        tone: "border-orange-400/25 bg-orange-400/10 text-orange-300",
+        tone: "border-[var(--success)] bg-[var(--bg-secondary)] text-[var(--success)]",
       },
       {
         label: "Cuộc thi",
         value: formatNumber(readNumber(stats, ["contestCount", "competitionCount", "contests"])),
         icon: Award,
-        tone: "border-teal-400/25 bg-teal-400/10 text-teal-300",
+        tone: "border-[var(--accent)] bg-[var(--bg-secondary)] text-[var(--accent)]",
       },
     ];
   }, [stats]);
@@ -487,14 +487,14 @@ export default function ProfileDashboard() {
 
   return (
     <div className="w-full">
-      <div className="sticky top-16 z-30 border-b border-white/[0.06] bg-[#171718]/90 px-4 py-3 backdrop-blur-md">
-        <h2 className="font-sans text-xl font-bold text-white/90">Profile Dashboard</h2>
+      <div className="sticky top-16 z-30 border-b border-[var(--border)] bg-[var(--bg-primary)]/90 px-4 py-3 backdrop-blur-md">
+        <h2 className="font-sans text-xl font-bold text-[var(--text-primary)]">Profile Dashboard</h2>
       </div>
 
       <div className="space-y-6 p-4">
-        <section className="rounded-lg border border-white/[0.08] bg-[#1C1C1E] p-5">
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-5">
           <div className="grid gap-5 md:grid-cols-[96px_minmax(0,1fr)]">
-            <div className="flex h-24 w-24 items-center justify-center rounded-full border border-[#0088cc] bg-[#0088cc]/10 font-sans text-lg font-bold text-[#00A2FF]">
+            <div className="flex h-24 w-24 items-center justify-center rounded-full border border-[var(--accent)] bg-[var(--bg-primary)] font-sans text-lg font-bold text-[var(--accent)]">
               {profileUser?.avatarUrl ? (
                 <img src={profileUser.avatarUrl} alt="Avatar" className="h-full w-full rounded-full object-cover" />
               ) : (
@@ -505,47 +505,47 @@ export default function ProfileDashboard() {
             <div className="min-w-0">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <h3 className="truncate font-sans text-2xl font-bold uppercase tracking-normal text-white">
+                  <h3 className="truncate font-sans text-2xl font-bold uppercase tracking-normal text-[var(--text-primary)]">
                     {displayName}
                   </h3>
-                  <p className="mt-1 font-sans text-base text-white/55">{username}</p>
+                  <p className="mt-1 font-sans text-base text-[var(--text-secondary)]">{username}</p>
                 </div>
 
                 <button
                   onClick={openProfileForm}
-                  className="inline-flex items-center justify-center gap-2 rounded-md bg-[#0088cc] px-4 py-2 font-sans text-sm font-semibold text-white transition-colors hover:bg-[#0099e6]"
+                  className="inline-flex items-center justify-center gap-2 rounded-md bg-[var(--accent)] px-4 py-2 font-sans text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)]"
                 >
                   <Edit3 size={16} />
                   Edit Profile
                 </button>
               </div>
 
-              <p className="mt-5 font-sans text-base leading-relaxed text-white">
+              <p className="mt-5 font-sans text-base leading-relaxed text-[var(--text-primary)]">
                 {isLoading ? "Đang tải..." : bio || "Chưa có dữ liệu"}
               </p>
 
-              <div className="mt-5 space-y-3 font-sans text-sm text-white/82">
+              <div className="mt-5 space-y-3 font-sans text-sm text-[var(--text-primary)]">
                 {company && (
                   <div className="flex items-center gap-2">
-                    <Building2 size={17} className="text-white/45" />
+                    <Building2 size={17} className="text-[var(--text-secondary)]" />
                     <span>{company}</span>
                   </div>
                 )}
                 {location && (
                   <div className="flex items-center gap-2">
-                    <MapPin size={17} className="text-white/45" />
+                    <MapPin size={17} className="text-[var(--text-secondary)]" />
                     <span>{location}</span>
                   </div>
                 )}
                 {websiteUrl && (
                   <div className="flex items-center gap-2">
-                    <LinkIcon size={17} className="text-white/45" />
+                    <LinkIcon size={17} className="text-[var(--text-secondary)]" />
                     <span>{websiteUrl}</span>
                   </div>
                 )}
                 {facebookUrl && (
                   <div className="flex items-center gap-2">
-                    <LinkIcon size={17} className="text-white/45" />
+                    <LinkIcon size={17} className="text-[var(--text-secondary)]" />
                     <span>{facebookUrl}</span>
                   </div>
                 )}
@@ -554,7 +554,7 @@ export default function ProfileDashboard() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-white/[0.08] bg-[#1C1C1E] p-4">
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {metrics.map((metric) => (
               <MetricCard key={metric.label} {...metric} />
@@ -563,18 +563,18 @@ export default function ProfileDashboard() {
         </section>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <section className="rounded-lg border border-white/[0.08] bg-[#1C1C1E]">
+          <section className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)]">
             <div className="p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="font-sans text-lg font-bold text-white">Experience & Focus</h3>
-                  <p className="mt-3 font-sans text-sm leading-relaxed text-white/70">
+                  <h3 className="font-sans text-lg font-bold text-[var(--text-primary)]">Experience & Focus</h3>
+                  <p className="mt-3 font-sans text-sm leading-relaxed text-[var(--text-secondary)]">
                     {profileData.headline || "Chưa có dữ liệu"}
                   </p>
                 </div>
                 <button
                   onClick={openFocusForm}
-                  className="rounded-md border border-white/[0.08] px-3 py-2 font-sans text-sm text-white/75 hover:bg-white/[0.05]"
+                  className="rounded-md border border-[var(--border)] px-3 py-2 font-sans text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
                 >
                   Chỉnh sửa
                 </button>
@@ -588,14 +588,14 @@ export default function ProfileDashboard() {
                 <div className="mt-6 space-y-6">
                   {profileData.coreStack.length > 0 && (
                     <div>
-                      <p className="mb-3 font-sans text-xs font-bold uppercase tracking-[0.18em] text-[#00A2FF]">
+                      <p className="mb-3 font-sans text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent)]">
                         Core stack
                       </p>
                       <div className="flex flex-wrap gap-3">
                         {profileData.coreStack.map((skill) => (
                           <span
                             key={skill}
-                            className="rounded-md border border-[#0088cc]/50 bg-[#0088cc]/15 px-4 py-2 font-sans text-sm font-semibold text-[#00A2FF]"
+                            className="rounded-md border border-[var(--accent)] bg-[var(--bg-primary)] px-4 py-2 font-sans text-sm font-semibold text-[var(--accent)]"
                           >
                             {skill}
                           </span>
@@ -605,20 +605,20 @@ export default function ProfileDashboard() {
                   )}
 
                   {profileData.experience && (
-                    <div className="border-t border-white/[0.08] pt-5">
-                      <p className="mb-3 font-sans text-xs font-bold uppercase tracking-[0.18em] text-[#00A2FF]">
+                    <div className="border-t border-[var(--border)] pt-5">
+                      <p className="mb-3 font-sans text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent)]">
                         Experience
                       </p>
-                      <p className="whitespace-pre-line font-sans text-base leading-7 text-white/82">
+                      <p className="whitespace-pre-line font-sans text-base leading-7 text-[var(--text-primary)]">
                         {profileData.experience}
                       </p>
                     </div>
                   )}
 
                   {profileData.topContribution && (
-                    <div className="border-t border-white/[0.08] pt-5">
-                      <p className="font-sans text-base font-bold text-white">Top contribution</p>
-                      <p className="mt-2 font-sans text-sm font-semibold text-emerald-400">
+                    <div className="border-t border-[var(--border)] pt-5">
+                      <p className="font-sans text-base font-bold text-[var(--text-primary)]">Top contribution</p>
+                      <p className="mt-2 font-sans text-sm font-semibold text-[var(--success)]">
                         {profileData.topContribution}
                       </p>
                     </div>
@@ -629,13 +629,13 @@ export default function ProfileDashboard() {
           </section>
 
           <div className="space-y-6">
-            <section className="rounded-lg border border-white/[0.08] bg-[#1C1C1E] p-5">
+            <section className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-sans text-lg font-bold text-white">Achievements</h3>
-                  <p className="mt-2 font-sans text-sm text-white/45">Verified milestones</p>
+                  <h3 className="font-sans text-lg font-bold text-[var(--text-primary)]">Achievements</h3>
+                  <p className="mt-2 font-sans text-sm text-[var(--text-secondary)]">Verified milestones</p>
                 </div>
-                <Trophy size={18} className="text-amber-400" />
+                <Trophy size={18} className="text-[var(--accent)]" />
               </div>
 
               <div className="mt-5">
@@ -643,12 +643,12 @@ export default function ProfileDashboard() {
               </div>
             </section>
 
-            <section className="rounded-lg border border-white/[0.08] bg-[#1C1C1E] p-5">
+            <section className="rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-sans text-lg font-bold text-white">Competition History</h3>
+                  <h3 className="font-sans text-lg font-bold text-[var(--text-primary)]">Competition History</h3>
                   {hasCompetitions && (
-                    <p className="mt-2 font-sans text-sm text-white/45">
+                    <p className="mt-2 font-sans text-sm text-[var(--text-secondary)]">
                       {`${profileData.competitions.length} mục đã thêm`}
                     </p>
                   )}
@@ -667,10 +667,10 @@ export default function ProfileDashboard() {
         <div className="fixed inset-0 z-[200] flex min-h-[100dvh] items-center justify-center overflow-y-auto bg-black/80 px-4 py-6">
           <form
             onSubmit={saveProfile}
-            className="github-profile-form w-full max-w-[320px] rounded-lg bg-[#1E1E1E] px-5 pb-4 pt-0 text-[#f0f6fc] shadow-2xl md:max-h-[calc(100dvh-32px)] md:overflow-y-auto"
+            className="github-profile-form w-full max-w-[320px] rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-5 pb-4 pt-0 text-[var(--text-primary)] shadow-2xl md:max-h-[calc(100dvh-32px)] md:overflow-y-auto"
           >
             <div className="mb-1 flex justify-center overflow-hidden pt-3">
-              <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border-2 border-[#30363d] bg-[#f0f6fc] font-sans text-lg font-bold text-[#0d1117]">
+              <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border-2 border-[var(--border)] bg-[var(--bg-secondary)] font-sans text-lg font-bold text-[var(--accent)]">
                 {profileUser?.avatarUrl ? (
                   <img
                     src={profileUser.avatarUrl}
@@ -684,7 +684,7 @@ export default function ProfileDashboard() {
             </div>
 
             {saveError && (
-              <div className="mb-3 rounded-md border border-red-400/25 bg-red-400/10 px-3 py-2 font-sans text-xs text-red-200">
+              <div className="mb-3 rounded-md border border-[var(--danger)] bg-[var(--bg-secondary)] px-3 py-2 font-sans text-xs text-[var(--danger)]">
                 {saveError}
               </div>
             )}
@@ -709,7 +709,7 @@ export default function ProfileDashboard() {
                 />
               </label>
 
-              <p className="-mt-1 font-sans text-[11px] leading-4 text-[#8b949e]">
+              <p className="-mt-1 font-sans text-[11px] leading-4 text-[var(--text-secondary)]">
                 You can @mention other users and organizations to link to them.
               </p>
 
@@ -743,15 +743,15 @@ export default function ProfileDashboard() {
                 />
 
                 <div className="grid grid-cols-[18px_minmax(0,1fr)] items-center gap-2">
-                  <Clock size={17} strokeWidth={1.8} className="text-[#8b949e]" />
-                  <label className="flex items-center gap-2 font-sans text-sm leading-5 text-[#c9d1d9]">
+                  <Clock size={17} strokeWidth={1.8} className="text-[var(--text-secondary)]" />
+                  <label className="flex items-center gap-2 font-sans text-sm leading-5 text-[var(--text-primary)]">
                     <input
                       type="checkbox"
                       checked={profileDraft.showLocalTime}
                       onChange={(event) =>
                         setProfileDraft((prev) => ({ ...prev, showLocalTime: event.target.checked }))
                       }
-                      className="h-3.5 w-3.5 rounded border-[#30363d] bg-[#0d1117] accent-[#238636]"
+                      className="h-3.5 w-3.5 rounded border-[var(--border)] bg-[var(--bg-primary)] accent-[var(--success)]"
                     />
                     Display current local time
                   </label>
@@ -777,7 +777,7 @@ export default function ProfileDashboard() {
                 <h4 className={githubLabelClass}>Social accounts</h4>
                 <div className="mt-1.5 grid gap-1.5">
                   <div className="grid grid-cols-[18px_minmax(0,1fr)] items-center gap-2">
-                    <span className="text-center font-sans text-xl font-black leading-none text-[#8b949e]">f</span>
+                    <span className="text-center font-sans text-xl font-black leading-none text-[var(--text-secondary)]">f</span>
                     <input
                       value={profileDraft.facebookUrl}
                       onChange={(event) => setProfileDraft((prev) => ({ ...prev, facebookUrl: event.target.value }))}
@@ -787,7 +787,7 @@ export default function ProfileDashboard() {
                   </div>
                   {["socialLink2", "socialLink3", "socialLink4"].map((field, index) => (
                     <div key={field} className="grid grid-cols-[18px_minmax(0,1fr)] items-center gap-2">
-                      <LinkIcon size={17} strokeWidth={1.8} className="text-[#8b949e]" />
+                      <LinkIcon size={17} strokeWidth={1.8} className="text-[var(--text-secondary)]" />
                       <input
                         value={profileDraft[field]}
                         onChange={(event) => setProfileDraft((prev) => ({ ...prev, [field]: event.target.value }))}

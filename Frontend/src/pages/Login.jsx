@@ -22,7 +22,7 @@ function FieldError({ message }) {
   );
 }
 
-// ─── SUB-COMPONENT: Thông báo lỗi API ────────────────────────────────────────
+// ─── SUB-COMPONENT: Thông báo lỗi đăng nhập ──────────────────────────────────
 function ApiErrorBanner({ message }) {
   if (!message) return null;
   return (
@@ -103,7 +103,7 @@ export default function Login() {
             <p className="text-white/40 text-sm">Đăng nhập để tiếp tục hành trình của bạn.</p>
           </div>
 
-          {/* API Error Banner */}
+          {/* Error Banner */}
           <div className="mb-4">
             <ApiErrorBanner message={apiError} />
           </div>

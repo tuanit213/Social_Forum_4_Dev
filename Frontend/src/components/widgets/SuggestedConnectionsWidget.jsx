@@ -8,20 +8,20 @@ export default function SuggestedConnectionsWidget() {
   ];
 
   return (
-    <div className="bg-[#1C1C1E] rounded-xl p-5 border border-white/[0.04]">
-      <h3 className="text-white/80 font-mono text-[14px] mb-4">Suggested Connections</h3>
+    <div className="bg-[var(--bg-secondary)] rounded-xl p-5 border border-[var(--border)]">
+      <h3 className="text-[var(--text-primary)] font-mono text-[14px] mb-4">Suggested Connections</h3>
       <div className="space-y-4">
         {suggestedUsers.map(user => (
           <div key={user.id} className="flex items-center justify-between group">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/50">
+              <div className="w-8 h-8 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center text-[var(--text-secondary)]">
                 <User size={16} />
               </div>
-              <span className="text-white/70 font-mono text-[14px] group-hover:text-white transition-colors cursor-pointer">
+              <span className="text-[var(--text-secondary)] font-mono text-[14px] group-hover:text-[var(--text-primary)] transition-colors cursor-pointer">
                 {user.name}
               </span>
             </div>
-            <button className="text-[#00A2FF] font-mono text-[13px] hover:brightness-125 transition-all">
+            <button className="text-[var(--accent)] font-mono text-[13px] hover:brightness-125 transition-all">
               Follow
             </button>
           </div>

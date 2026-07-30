@@ -7,7 +7,7 @@
 .github-profile-form select:-webkit-autofill,
 .github-profile-form select:-webkit-autofill:hover,
 .github-profile-form select:-webkit-autofill:focus {
-  -webkit-text-fill-color: #f0f6fc;
-  box-shadow: 0 0 0 1000px #1e1e1e inset;
+  -webkit-text-fill-color: var(--text-primary);
+  box-shadow: 0 0 0 1000px var(--bg-primary) inset;
   transition: background-color 9999s ease-in-out 0s;
 }
