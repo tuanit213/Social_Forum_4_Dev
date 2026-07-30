@@ -22,7 +22,8 @@ const userSchema = new mogoose.Schema({
     displayName: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        maxlength: 80
     },
 
     avatarUrl: {
@@ -38,10 +39,81 @@ const userSchema = new mogoose.Schema({
         maxlength: 500
     },
 
+    location:{
+        type: String,
+        trim: true,
+        maxlength: 120,
+        default: ""
+    },
+
+    pronouns:{
+        type: String,
+        trim: true,
+        maxlength: 40,
+        default: "Don't specify"
+    },
+
+    company:{
+        type: String,
+        trim: true,
+        maxlength: 120,
+        default: ""
+    },
+
+    showLocalTime:{
+        type: Boolean,
+        default: false
+    },
+
+    contactEmail:{
+        type: String,
+        trim: true,
+        lowercase: true,
+        maxlength: 254,
+        default: ""
+    },
+
+    websiteUrl:{
+        type: String,
+        trim: true,
+        maxlength: 180,
+        default: ""
+    },
+
+    facebookUrl:{
+        type: String,
+        trim: true,
+        maxlength: 180,
+        default: ""
+    },
+
+    socialLinks:{
+        type: [String],
+        default: []
+    },
+
     phone:{
         type: String,
         sparse: true
-    }
+    },
+
+    stats: {
+        experienceYears: { type: Number, default: 0, min: 0 },
+        courseCount: { type: Number, default: 0, min: 0 },
+        postCount: { type: Number, default: 0, min: 0 },
+        globalRank: { type: Number, default: 0, min: 0 },
+        currentStreak: { type: Number, default: 0, min: 0 },
+        contestCount: { type: Number, default: 0, min: 0 }
+    },
+
+    profileDashboard: {
+        headline: { type: String, trim: true, maxlength: 120, default: "" },
+        coreStack: { type: [String], default: [] },
+        experience: { type: String, trim: true, maxlength: 1200, default: "" },
+        achievements: { type: [String], default: [] },
+        competitions: { type: [String], default: [] },
+        topContribution: { type: String, trim: true, maxlength: 180, default: "" }
+    },
 },
     {
         timestamps: true,

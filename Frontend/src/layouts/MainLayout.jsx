@@ -3,52 +3,57 @@ import { Outlet, useNavigate } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import RightSidebar from "@/components/layout/RightSidebar";
+import { getAccessToken, getStoredUser, refreshAuthToken } from "@/services/authService";
 
 export default function MainLayout() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      navigate("/login", { replace: true });
-      return;
-    }
+    let cancelled = false;
 
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (e) {
-        console.error("Lỗi parse thông tin user:", e);
+    const loadSession = async () => {
+      const storedUser = getStoredUser();
+
+      if (getAccessToken() && storedUser) {
+        setUser(storedUser);
+        return;
       }
-    }
+
+      try {
+        const data = await refreshAuthToken();
+        if (!cancelled) {
+          setUser(data.user || getStoredUser());
+        }
+      } catch {
+        if (!cancelled) {
+          navigate("/login", { replace: true });
+        }
+      }
+    };
+
+    loadSession();
+
+    return () => {
+      cancelled = true;
+    };
   }, [navigate]);
 
-  if (!user) return null; // Loading state
+  if (!user) return null;
 
   return (
     <div className="min-h-screen w-full bg-[#171718] text-white font-sans overflow-hidden">
-      
-      {/* Top Navbar */}
       <Navbar user={user} />
 
-      {/* 3-Column Layout */}
       <div className="relative z-10 max-w-[1400px] mx-auto w-full pt-16 flex justify-center">
-        
-        {/* Left Sidebar (Navigation) */}
         <LeftSidebar />
 
-        {/* Center Content (Main Feed) */}
         <main className="flex-1 w-full max-w-2xl min-w-0 border-x border-white/[0.06] min-h-[calc(100vh-64px)]">
           <Outlet context={{ user }} />
         </main>
 
-        {/* Right Sidebar (Widgets) */}
         <RightSidebar user={user} />
-
       </div>
-
     </div>
   );
 }

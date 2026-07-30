@@ -61,13 +61,17 @@ export default function CreatePostModal({ isOpen, onClose, onSubmit }) {
   const handleSubmit = async () => {
     if (!content.trim()) return;
     setIsSubmitting(true);
-    // Since we unified code and text, we only send content.
-    await onSubmit({ title, content, tags, mediaUrls: [] });
-    setIsSubmitting(false);
-    setTitle("");
-    setContent("");
-    setTags([]);
-    onClose();
+    try {
+      const success = await onSubmit({ title, content, tags, mediaUrls: [] });
+      if (success === false) return;
+
+      setTitle("");
+      setContent("");
+      setTags([]);
+      onClose();
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

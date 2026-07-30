@@ -1,121 +1,120 @@
-/**
- * authService.js
- * Tầng service tập trung mọi lời gọi API liên quan đến xác thực.
- * UI và hooks KHÔNG gọi axios/fetch trực tiếp — luôn đi qua service này.
- */
-
 import axios from "axios";
 
-// ─── AXIOS INSTANCE ────────────────────────────────────────────────────────────
+let accessToken = null;
+const USER_STORAGE_KEY = "user";
+const LEGACY_TOKEN_KEY = "accessToken";
+
+export const getAccessToken = () => accessToken;
+
+export const getStoredUser = () => {
+  const userData = localStorage.getItem(USER_STORAGE_KEY);
+  if (!userData) return null;
+
+  try {
+    return JSON.parse(userData);
+  } catch {
+    localStorage.removeItem(USER_STORAGE_KEY);
+    return null;
+  }
+};
+
+export const clearAuthState = () => {
+  accessToken = null;
+  localStorage.removeItem(USER_STORAGE_KEY);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+};
+
+const saveAuthState = ({ accessToken: token, user }) => {
+  if (token) {
+    accessToken = token;
+  }
+
+  if (user) {
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+  }
+
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+};
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
-  withCredentials: true,          // Gửi httpOnly cookie (refreshToken) theo request
-  timeout: 10_000,                // Timeout 10 giây
+  withCredentials: true,
+  timeout: 10_000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// ─── REQUEST INTERCEPTOR ──────────────────────────────────────────────────────
-// Tự động đính kèm accessToken (nếu có) vào header Authorization
 api.interceptors.request.use(
   (config) => {
-    // Đổi sang localStorage để giữ đăng nhập khi tắt trình duyệt / mở tab mới
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
+
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
-// ─── RESPONSE INTERCEPTOR ────────────────────────────────────────────────────
-// Chuẩn hóa lỗi trả về và tự động refresh token nếu accessToken hết hạn
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Tránh vòng lặp vô tận nếu chính endpoint refresh token bị lỗi 401
-    if (error.response?.status === 401 && originalRequest.url === '/auth/refresh') {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("user");
-      window.location.href = '/login';
+    if (error.response?.status === 401 && originalRequest?.url === "/auth/refresh") {
+      clearAuthState();
+      window.location.href = "/login";
       return Promise.reject(error);
     }
 
-    // Nếu lỗi 401 (Hết hạn token) và chưa thử refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 403) {
+      clearAuthState();
+      window.location.href = "/login";
+      return Promise.reject(error);
+    }
+
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
+
       try {
         const { data } = await api.post("/auth/refresh");
-        
-        // Lưu token mới
+        saveAuthState(data);
+
         if (data.accessToken) {
-          localStorage.setItem("accessToken", data.accessToken);
-          if (data.user) {
-            localStorage.setItem("user", JSON.stringify(data.user));
-          }
+          originalRequest.headers = originalRequest.headers || {};
+          originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         }
-        
-        // Gắn token mới và thực hiện lại request ban đầu
-        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh token cũng đã hết hạn hoặc không hợp lệ -> Đăng xuất
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("user");
-        window.location.href = '/login';
+        clearAuthState();
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       }
     }
 
     const message =
       error.response?.data?.message ||
-      (error.code === "ECONNABORTED" ? "Kết nối quá thời gian, thử lại sau." : "Lỗi kết nối đến máy chủ.");
+      (error.code === "ECONNABORTED"
+        ? "Ket noi qua thoi gian, thu lai sau."
+        : "Loi ket noi den may chu.");
+
     return Promise.reject(new Error(message));
-  }
+  },
 );
 
-// ─── AUTH SERVICES ─────────────────────────────────────────────────────────────
-
-/**
- * Gọi API refresh token chủ động (thường được gọi khi trang mới load)
- */
 export const refreshAuthToken = async () => {
   const { data } = await api.post("/auth/refresh");
-  if (data.accessToken) {
-    localStorage.setItem("accessToken", data.accessToken);
-    if (data.user) {
-      localStorage.setItem("user", JSON.stringify(data.user));
-    }
-  }
+  saveAuthState(data);
   return data;
 };
 
-/**
- * Đăng nhập tài khoản
- * @param {{ username: string, password: string }} credentials
- * @returns {{ accessToken: string, user: object }}
- */
 export const signIn = async ({ username, password }) => {
   const { data } = await api.post("/auth/signin", { username, password });
-  // Lưu accessToken và thông tin user vào localStorage để giữ đăng nhập
-  if (data.accessToken) {
-    localStorage.setItem("accessToken", data.accessToken);
-    if (data.user) {
-      localStorage.setItem("user", JSON.stringify(data.user));
-    }
-  }
+  saveAuthState(data);
   return data;
 };
 
-/**
- * Đăng ký tài khoản mới
- * @param {{ firstName: string, lastName: string, username: string, email: string, password: string }} userData
- * @returns {{ message: string }}
- */
 export const signUp = async ({ firstName, lastName, username, email, password }) => {
   const { data } = await api.post("/auth/signup", {
     firstName,
@@ -124,20 +123,18 @@ export const signUp = async ({ firstName, lastName, username, email, password })
     email,
     password,
   });
+
   return data;
 };
 
-/**
- * Đăng xuất - xóa cookie refreshToken phía server và xóa accessToken, user local
- */
 export const signOut = async () => {
   try {
     await api.post("/auth/signout");
-  } catch(e) {
-    console.error("Signout API error", e);
+  } catch (error) {
+    console.error("Signout API error", error);
+  } finally {
+    clearAuthState();
   }
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("user");
 };
 
 export default api;

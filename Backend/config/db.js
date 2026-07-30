@@ -1,22 +1,47 @@
-import mongoose from 'mongoose';
+import dns from "dns";
+import mongoose from "mongoose";
 
-/**
- * Hàm kết nối tới cơ sở dữ liệu MongoDB.
- * Sử dụng try-catch để bắt và xử lý lỗi kết nối để dễ debug.
- */
+mongoose.set("bufferCommands", false);
+mongoose.set("sanitizeFilter", true);
+mongoose.set("strictQuery", true);
+
+export const isDBConnected = () => mongoose.connection.readyState === 1;
+
+export const requireDBConnection = (req, res, next) => {
+  if (!isDBConnected()) {
+    return res.status(503).json({
+      message: "Database chưa kết nối. Kiểm tra MONGODB_URI hoặc MongoDB server.",
+    });
+  }
+
+  next();
+};
+
 const connectDB = async () => {
+  const uri = process.env.MONGODB_URI;
+  const dnsServers = process.env.DNS_SERVERS?.split(",")
+    .map((server) => server.trim())
+    .filter(Boolean);
+
+  if (!uri) {
+    console.warn("Cảnh báo: MONGODB_URI đang trống. API cần database sẽ không lưu được dữ liệu.");
+    return false;
+  }
+
+  if (dnsServers?.length) {
+    dns.setServers(dnsServers);
+  }
+
   try {
-    // process.env.MONGODB_URI hiện đang để trống theo yêu cầu
-    if (!process.env.MONGODB_URI) {
-      console.warn("Cảnh báo: MONGODB_URI đang trống. Bỏ qua kết nối database.");
-      return;
-    }
-    const conn = await mongoose.connect(process.env.MONGODB_URI);
+    const conn = await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 5000,
+    });
+
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+    return true;
   } catch (error) {
     console.error(`Lỗi kết nối MongoDB: ${error.message}`);
-    // Dừng tiến trình server nếu xảy ra lỗi kết nối nghiêm trọng
-    process.exit(1);
+    return false;
   }
 };
 

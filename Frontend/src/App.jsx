@@ -10,6 +10,7 @@ import DevChallenges from "./pages/DevChallenges";
 import DevHelp from "./pages/DevHelp";
 import TrendingGithub from "./pages/TrendingGithub";
 import Settings from "./pages/Settings";
+import ProfileDashboard from "./pages/ProfileDashboard";
 import MainLayout from "./layouts/MainLayout";
 import './App.css'
 
@@ -27,6 +28,7 @@ function App() {
           <Route path="/help" element={<DevHelp />} />
           <Route path="/trending" element={<TrendingGithub />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/dashboard" element={<ProfileDashboard />} />
         </Route>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />

@@ -44,7 +44,7 @@ export const getPosts = async (req, res) => {
 
     // Chỉ lấy bài viết public, sắp xếp mới nhất lên đầu
     const posts = await Post.find({ status: 'public' })
-      .populate('userId', 'username displayName avatarUrl') // Lấy thêm thông tin người đăng
+      .populate('userId', 'Username displayName avatarUrl') // Lấy thêm thông tin người đăng
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);

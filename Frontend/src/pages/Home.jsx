@@ -3,8 +3,7 @@ import { Shield } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import CreatePostWidget from "@/components/post/CreatePostWidget";
 import CreatePostModal from "@/components/post/CreatePostModal";
-// Import authService or axios to make the API call. Assuming we have an api instance or we use fetch.
-import axios from "axios";
+import api from "@/services/authService";
 
 export default function Home() {
   const { user } = useOutletContext();
@@ -13,19 +12,16 @@ export default function Home() {
 
   const handleCreatePost = async (postData) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const res = await axios.post("http://localhost:5000/api/posts", postData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const res = await api.post("/posts", postData);
       if (res.data.success) {
-        // Add to local state to reflect UI update immediately
-        setPosts([res.data.post, ...posts]);
+        setPosts((currentPosts) => [res.data.post, ...currentPosts]);
       }
+
+      return true;
     } catch (error) {
       console.error("Lỗi khi đăng bài:", error);
-      alert("Có lỗi xảy ra khi đăng bài. Vui lòng kiểm tra console.");
+      alert(error.message || "Có lỗi xảy ra khi đăng bài. Vui lòng kiểm tra console.");
+      return false;
     }
   };
 

@@ -1,1 +1,13 @@
-/* Empty App.css */
+.github-profile-form input:-webkit-autofill,
+.github-profile-form input:-webkit-autofill:hover,
+.github-profile-form input:-webkit-autofill:focus,
+.github-profile-form textarea:-webkit-autofill,
+.github-profile-form textarea:-webkit-autofill:hover,
+.github-profile-form textarea:-webkit-autofill:focus,
+.github-profile-form select:-webkit-autofill,
+.github-profile-form select:-webkit-autofill:hover,
+.github-profile-form select:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f0f6fc;
+  box-shadow: 0 0 0 1000px #1e1e1e inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
