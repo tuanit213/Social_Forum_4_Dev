@@ -13,4 +13,7 @@ router.get("/profile", verifyToken, getMyProfile);
 router.get("/me/dashboard", verifyToken, getMyDashboardProfile);
 router.put("/me/dashboard", verifyToken, validateDashboardProfile, updateMyDashboardProfile);
 
+import { getAllUsers } from "../controllers/userController.js";
+router.get("/", verifyToken, getAllUsers);
+
 export default router;

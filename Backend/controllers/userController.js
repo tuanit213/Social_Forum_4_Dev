@@ -141,7 +141,17 @@ export const getMyProfile = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("getMyProfile error", error.name, error.message);
-    return res.status(500).json({ message: "Loi he thong" });
+    console.error("Lỗi cập nhật dashboard profile:", error);
+    res.status(500).json({ message: "Lỗi hệ thống" });
+  }
+};
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({}, "Username displayName avatarUrl");
+    res.status(200).json({ success: true, users });
+  } catch (error) {
+    console.error("Lỗi lấy danh sách user:", error);
+    res.status(500).json({ success: false, message: "Lỗi hệ thống" });
   }
 };

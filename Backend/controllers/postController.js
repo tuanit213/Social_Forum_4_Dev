@@ -1,4 +1,5 @@
 import Post from '../models/Post.js';
+import xss from 'xss';
 
 // Tạo bài viết mới
 export const createPost = async (req, res) => {
@@ -8,18 +9,28 @@ export const createPost = async (req, res) => {
     // req.user được gán từ middleware verifyToken
     const userId = req.user.userId;
 
-    if (!content) {
-      return res.status(400).json({ success: false, message: "Nội dung bài viết không được để trống." });
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({ success: false, message: "Nội dung bài viết không hợp lệ." });
     }
+
+    const safeTitle = title && typeof title === 'string' ? xss(title.trim()) : "";
+    const safeContent = xss(content.trim());
+    const safeCodeSnippet = codeSnippet && typeof codeSnippet === 'string' ? xss(codeSnippet) : "";
+    
+    // Đảm bảo mảng tags chứa toàn string
+    const safeTags = Array.isArray(tags) ? tags.filter(t => typeof t === 'string').map(t => xss(t.trim())) : [];
+    
+    // Lọc mảng mediaUrls
+    const safeMediaUrls = Array.isArray(mediaUrls) ? mediaUrls.filter(u => typeof u === 'string').map(u => xss(u.trim())) : [];
 
     const newPost = new Post({
       userId,
-      title,
-      content,
-      codeSnippet,
-      mediaUrls: mediaUrls || [],
-      tags: tags || [],
-      status: status || 'public'
+      title: safeTitle,
+      content: safeContent,
+      codeSnippet: safeCodeSnippet,
+      mediaUrls: safeMediaUrls,
+      tags: safeTags,
+      status: status === 'private' ? 'private' : 'public'
     });
 
     const savedPost = await newPost.save();
@@ -38,8 +49,9 @@ export const createPost = async (req, res) => {
 // Lấy danh sách bài viết (Có phân trang đơn giản)
 export const getPosts = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    // Giới hạn query tối đa 50 bản ghi
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 50);
     const skip = (page - 1) * limit;
 
     // Chỉ lấy bài viết public, sắp xếp mới nhất lên đầu
@@ -81,13 +93,20 @@ export const updatePost = async (req, res) => {
       return res.status(403).json({ success: false, message: "Bạn không có quyền chỉnh sửa bài viết này" });
     }
 
-    if (!content) {
-      return res.status(400).json({ success: false, message: "Nội dung bài viết không được để trống" });
+    if (content !== undefined) {
+      if (typeof content !== 'string' || !content.trim()) {
+        return res.status(400).json({ success: false, message: "Nội dung bài viết không hợp lệ" });
+      }
+      post.content = xss(content.trim());
     }
 
-    post.title = title !== undefined ? title : post.title;
-    post.content = content !== undefined ? content : post.content;
-    post.tags = tags !== undefined ? tags : post.tags;
+    if (title !== undefined && typeof title === 'string') {
+      post.title = xss(title.trim());
+    }
+
+    if (tags !== undefined && Array.isArray(tags)) {
+      post.tags = tags.filter(t => typeof t === 'string').map(t => xss(t.trim()));
+    }
 
     const updatedPost = await post.save();
 

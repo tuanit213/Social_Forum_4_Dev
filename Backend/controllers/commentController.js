@@ -1,4 +1,5 @@
 import Comment from '../models/Comment.js';
+import xss from 'xss';
 
 // Tạo bình luận mới
 export const createComment = async (req, res) => {
@@ -6,12 +7,14 @@ export const createComment = async (req, res) => {
     const { postId, content, parentCommentId } = req.body;
     const userId = req.user.userId;
 
-    if (!postId || !content) {
-      return res.status(400).json({ success: false, message: "postId và content là bắt buộc" });
+    if (!postId || !content || typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({ success: false, message: "postId và content là bắt buộc và không được để trống" });
     }
 
+    const safeContent = xss(content.trim());
+
     const newComment = new Comment({
-      content,
+      content: safeContent,
       userId,
       postId,
       parentCommentId: parentCommentId || null
@@ -65,6 +68,10 @@ export const updateComment = async (req, res) => {
     const { content } = req.body;
     const userId = req.user.userId;
 
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({ success: false, message: "Nội dung bình luận không hợp lệ" });
+    }
+
     const comment = await Comment.findById(id);
     if (!comment) {
       return res.status(404).json({ success: false, message: "Không tìm thấy bình luận" });
@@ -74,7 +81,7 @@ export const updateComment = async (req, res) => {
       return res.status(403).json({ success: false, message: "Không có quyền sửa bình luận này" });
     }
 
-    comment.content = content || comment.content;
+    comment.content = xss(content.trim());
     await comment.save();
 
     res.status(200).json({
@@ -103,12 +110,20 @@ export const deleteComment = async (req, res) => {
       return res.status(403).json({ success: false, message: "Không có quyền xoá bình luận này" });
     }
 
-    // Hard delete
+    // Xóa tất cả các comment con (orphan comments)
+    const childComments = await Comment.find({ parentCommentId: id });
+    const childIds = childComments.map(c => c._id);
+    if (childIds.length > 0) {
+      await Comment.deleteMany({ _id: { $in: childIds } });
+    }
+
+    // Hard delete bình luận gốc
     await Comment.findByIdAndDelete(id);
 
-    // Giảm commentsCount của Post
+    // Giảm commentsCount của Post (giảm 1 gốc + số lượng con)
+    const totalDeleted = 1 + childIds.length;
     await import('../models/Post.js').then(module => {
-      module.default.findByIdAndUpdate(comment.postId, { $inc: { commentsCount: -1 } }).exec();
+      module.default.findByIdAndUpdate(comment.postId, { $inc: { commentsCount: -totalDeleted } }).exec();
     });
 
     res.status(200).json({
