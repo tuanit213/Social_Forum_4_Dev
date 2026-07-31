@@ -139,10 +139,10 @@ function TextList({ items }) {
 
 function ModalShell({ title, error, onClose, onSubmit, children }) {
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4 py-8">
+    <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/70 px-4 py-8 flex justify-center items-start">
       <form
         onSubmit={onSubmit}
-        className="max-h-full w-full max-w-xl overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] p-5 shadow-2xl"
+        className="mt-auto mb-auto w-full max-w-xl rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] p-5 shadow-2xl"
       >
         <div className="mb-5 flex items-center justify-between gap-4">
           <h3 className="font-sans text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
@@ -351,10 +351,10 @@ export default function ProfileDashboard() {
     websiteUrl: profileData.websiteUrl || profileUser?.websiteUrl || "",
     facebookUrl: profileData.facebookUrl || profileUser?.facebookUrl || "",
     socialLinks: profileData.socialLinks || profileUser?.socialLinks || [],
-    headline: profileData.headline,
-    coreStack: profileData.coreStack,
-    experience: profileData.experience,
-    topContribution: profileData.topContribution,
+    headline: profileData.headline || "",
+    coreStack: profileData.coreStack || [],
+    experience: profileData.experience || "",
+    topContribution: profileData.topContribution || "",
     ...overrides,
   });
 
@@ -405,10 +405,10 @@ export default function ProfileDashboard() {
 
   const openFocusForm = () => {
     setFocusDraft({
-      headline: profileData.headline,
-      coreStack: listToText(profileData.coreStack),
-      experience: profileData.experience,
-      topContribution: profileData.topContribution,
+      headline: profileData.headline || "",
+      coreStack: listToText(profileData.coreStack || []),
+      experience: profileData.experience || "",
+      topContribution: profileData.topContribution || "",
     });
     setSaveError("");
     setActiveForm("focus");
@@ -442,7 +442,9 @@ export default function ProfileDashboard() {
       applyResponse(data, payload);
       setActiveForm(null);
     } catch (error) {
-      setSaveError(error.message || "Không lưu được profile");
+      console.error("Save profile error:", error.response?.data || error);
+      const msg = error.response?.data?.message || error.response?.data?.errors?.[0]?.msg || error.message;
+      setSaveError(msg || "Không lưu được profile");
     }
   };
 
@@ -462,7 +464,9 @@ export default function ProfileDashboard() {
       applyResponse(data, payload);
       setActiveForm(null);
     } catch (error) {
-      setSaveError(error.message || "Không lưu được Experience & Focus");
+      console.error("Save focus error:", error.response?.data || error);
+      const msg = error.response?.data?.message || error.response?.data?.errors?.[0]?.msg || error.message;
+      setSaveError(msg || "Không lưu được Experience & Focus");
     }
   };
 
