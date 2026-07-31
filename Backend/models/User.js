@@ -114,6 +114,14 @@ const userSchema = new mogoose.Schema({
         competitions: { type: [String], default: [] },
         topContribution: { type: String, trim: true, maxlength: 180, default: "" }
     },
+    followers: [{
+        type: mogoose.Schema.Types.ObjectId,
+        ref: "User"
+    }],
+    following: [{
+        type: mogoose.Schema.Types.ObjectId,
+        ref: "User"
+    }],
 },
     {
         timestamps: true,

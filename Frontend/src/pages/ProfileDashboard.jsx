@@ -89,7 +89,7 @@ function MetricCard({ icon: Icon, value, label, tone }) {
           <p className="whitespace-nowrap font-sans text-2xl font-bold leading-none tracking-normal text-[var(--text-primary)]">
             {value}
           </p>
-          <p className="mt-2 break-words font-sans text-sm font-medium leading-snug tracking-normal text-[var(--text-secondary)]">
+          <p className="mt-2 truncate font-sans text-sm font-medium leading-snug tracking-normal text-[var(--text-secondary)]">
             {label}
           </p>
         </div>

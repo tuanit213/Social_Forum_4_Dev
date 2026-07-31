@@ -6,6 +6,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import EmojiPicker from 'emoji-picker-react';
 import { MoreHorizontal, Edit, Trash2, MessageSquare, Heart, Share2, Bookmark, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '@/services/authService';
 import CommentSection from './CommentSection';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -95,12 +96,14 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
       {/* Header: User Info & Options */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center font-bold text-white shadow-md text-lg">
+          <Link to={`/profile/${post.userId?.Username || post.userId?.username}`} className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center font-bold text-white shadow-md text-lg hover:opacity-80 transition">
             {initial}
-          </div>
+          </Link>
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
             <div className="flex items-center gap-2">
-              <p className="font-mono text-[16px] text-[var(--text-primary)] font-medium">{authorName}</p>
+              <Link to={`/profile/${post.userId?.Username || post.userId?.username}`} className="font-mono text-[16px] text-[var(--text-primary)] font-medium hover:underline">
+                {authorName}
+              </Link>
               <span className="text-[var(--text-secondary)] text-xs hidden sm:inline">•</span>
               <p className="font-mono text-[13px] text-[var(--text-secondary)] hidden sm:inline">{formattedDate}</p>
             </div>

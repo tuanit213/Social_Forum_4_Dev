@@ -155,3 +155,64 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ success: false, message: "Lỗi hệ thống" });
   }
 };
+
+export const getUserProfile = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const currentUserId = req.user.userId;
+
+    const user = await User.findOne({ Username: username });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+    }
+
+    const isFollowing = user.followers.includes(currentUserId);
+    const followersCount = user.followers.length;
+    const followingCount = user.following.length;
+
+    const responseData = buildDashboardResponse(user);
+    responseData.followInfo = {
+      isFollowing,
+      followersCount,
+      followingCount
+    };
+
+    return res.status(200).json({ success: true, data: responseData });
+  } catch (error) {
+    console.error("Lỗi lấy thông tin profile:", error);
+    res.status(500).json({ success: false, message: "Lỗi hệ thống" });
+  }
+};
+
+export const toggleFollowUser = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const currentUserId = req.user.userId;
+
+    const targetUser = await User.findOne({ Username: username });
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+    }
+
+    if (targetUser._id.toString() === currentUserId) {
+      return res.status(400).json({ success: false, message: "Không thể tự theo dõi chính mình" });
+    }
+
+    const isFollowing = targetUser.followers.includes(currentUserId);
+    
+    if (isFollowing) {
+      // Unfollow
+      await User.findByIdAndUpdate(targetUser._id, { $pull: { followers: currentUserId } });
+      await User.findByIdAndUpdate(currentUserId, { $pull: { following: targetUser._id } });
+      return res.status(200).json({ success: true, isFollowing: false, message: "Đã hủy theo dõi" });
+    } else {
+      // Follow
+      await User.findByIdAndUpdate(targetUser._id, { $addToSet: { followers: currentUserId } });
+      await User.findByIdAndUpdate(currentUserId, { $addToSet: { following: targetUser._id } });
+      return res.status(200).json({ success: true, isFollowing: true, message: "Đã theo dõi" });
+    }
+  } catch (error) {
+    console.error("Lỗi theo dõi người dùng:", error);
+    res.status(500).json({ success: false, message: "Lỗi hệ thống" });
+  }
+};
