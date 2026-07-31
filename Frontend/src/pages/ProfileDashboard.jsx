@@ -806,6 +806,7 @@ export default function ProfileDashboard() {
                 </div>
               </div>
             </div>
+            </div>
 
             <div className="mt-6 border-t border-[var(--border)] pt-4">
               <FormActions onCancel={closeForm} />
