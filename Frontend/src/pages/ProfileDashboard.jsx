@@ -671,7 +671,7 @@ export default function ProfileDashboard() {
         <div className="fixed inset-0 z-[200] flex min-h-[100dvh] items-center justify-center overflow-y-auto bg-black/80 px-4 py-6">
           <form
             onSubmit={saveProfile}
-            className="github-profile-form w-full max-w-[320px] rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-5 pb-4 pt-0 text-[var(--text-primary)] shadow-2xl md:max-h-[calc(100dvh-32px)] md:overflow-y-auto"
+            className="github-profile-form w-full max-w-3xl rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-5 pb-5 pt-0 text-[var(--text-primary)] shadow-2xl md:max-h-[calc(100dvh-32px)] md:overflow-y-auto"
           >
             <div className="mb-1 flex justify-center overflow-hidden pt-3">
               <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-full border-2 border-[var(--border)] bg-[var(--bg-secondary)] font-sans text-lg font-bold text-[var(--accent)]">
@@ -693,15 +693,16 @@ export default function ProfileDashboard() {
               </div>
             )}
 
-            <div className="grid gap-2.5">
-              <label className="grid gap-1">
-                <span className={githubLabelClass}>Name</span>
-                <input
-                  value={profileDraft.displayName}
-                  onChange={(event) => setProfileDraft((prev) => ({ ...prev, displayName: event.target.value }))}
-                  className={githubInputClass}
-                />
-              </label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid gap-2.5">
+                <label className="grid gap-1">
+                  <span className={githubLabelClass}>Name</span>
+                  <input
+                    value={profileDraft.displayName}
+                    onChange={(event) => setProfileDraft((prev) => ({ ...prev, displayName: event.target.value }))}
+                    className={githubInputClass}
+                  />
+                </label>
 
               <label className="grid gap-1">
                 <span className={githubLabelClass}>Bio</span>
@@ -717,21 +718,23 @@ export default function ProfileDashboard() {
                 You can @mention other users and organizations to link to them.
               </p>
 
-              <label className="grid gap-1">
-                <span className={githubLabelClass}>Pronouns</span>
-                <select
-                  value={profileDraft.pronouns}
-                  onChange={(event) => setProfileDraft((prev) => ({ ...prev, pronouns: event.target.value }))}
-                  className={githubInputClass}
-                >
-                  <option>Don't specify</option>
-                  <option>He/Him</option>
-                  <option>She/Her</option>
-                  <option>They/Them</option>
-                </select>
-              </label>
+                <label className="grid gap-1">
+                  <span className={githubLabelClass}>Pronouns</span>
+                  <select
+                    value={profileDraft.pronouns}
+                    onChange={(event) => setProfileDraft((prev) => ({ ...prev, pronouns: event.target.value }))}
+                    className={githubInputClass}
+                  >
+                    <option>Don't specify</option>
+                    <option>He/Him</option>
+                    <option>She/Her</option>
+                    <option>They/Them</option>
+                  </select>
+                </label>
+              </div>
 
-              <div className="grid gap-1.5">
+              <div className="grid gap-4">
+                <div className="grid gap-1.5">
                 <IconInput
                   icon={Building2}
                   value={profileDraft.company}
@@ -804,7 +807,9 @@ export default function ProfileDashboard() {
               </div>
             </div>
 
-            <FormActions onCancel={closeForm} />
+            <div className="mt-6 border-t border-[var(--border)] pt-4">
+              <FormActions onCancel={closeForm} />
+            </div>
           </form>
         </div>
       )}
