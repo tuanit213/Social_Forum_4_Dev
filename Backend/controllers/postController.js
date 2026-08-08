@@ -1,12 +1,14 @@
 import Post from '../models/Post.js';
+import Interaction from '../models/Interaction.js';
+import redisClient from '../config/redis.js';
+import { addJobToFeedQueue } from '../config/queue.js';
+import User from '../models/User.js';
 import xss from 'xss';
 
 // Tạo bài viết mới
 export const createPost = async (req, res) => {
   try {
     const { title, content, codeSnippet, mediaUrls, tags, status } = req.body;
-    
-    // req.user được gán từ middleware verifyToken
     const userId = req.user.userId;
 
     if (!content || typeof content !== 'string' || !content.trim()) {
@@ -16,11 +18,7 @@ export const createPost = async (req, res) => {
     const safeTitle = title && typeof title === 'string' ? xss(title.trim()) : "";
     const safeContent = xss(content.trim());
     const safeCodeSnippet = codeSnippet && typeof codeSnippet === 'string' ? xss(codeSnippet) : "";
-    
-    // Đảm bảo mảng tags chứa toàn string
     const safeTags = Array.isArray(tags) ? tags.filter(t => typeof t === 'string').map(t => xss(t.trim())) : [];
-    
-    // Lọc mảng mediaUrls
     const safeMediaUrls = Array.isArray(mediaUrls) ? mediaUrls.filter(u => typeof u === 'string').map(u => xss(u.trim())) : [];
 
     const newPost = new Post({
@@ -35,6 +33,14 @@ export const createPost = async (req, res) => {
 
     const savedPost = await newPost.save();
     
+    // Đẩy Job để update feed cho những người theo dõi User này
+    const author = await User.findById(userId).select('followers').lean();
+    if (author && author.followers) {
+        author.followers.forEach(followerId => {
+            addJobToFeedQueue('update-feed-follower', { userId: followerId.toString() });
+        });
+    }
+
     res.status(201).json({
       success: true,
       message: "Tạo bài viết thành công",
@@ -46,17 +52,44 @@ export const createPost = async (req, res) => {
   }
 };
 
-// Lấy danh sách bài viết (Có phân trang đơn giản)
+// Lấy danh sách bài viết (Sử dụng thuật toán Phân phối từ Redis)
 export const getPosts = async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
-    // Giới hạn query tối đa 50 bản ghi
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 50);
     const skip = (page - 1) * limit;
+    const userId = req.user.userId;
 
-    // Chỉ lấy bài viết public, sắp xếp mới nhất lên đầu
+    const redisKey = `feed:user:${userId}`;
+    
+    // 1. Kiểm tra News Feed trong Redis
+    const postIds = await redisClient.zrevrange(redisKey, skip, skip + limit - 1);
+    
+    if (postIds && postIds.length > 0) {
+      // Có dữ liệu phân phối -> Lấy bài viết từ MongoDB theo list ID
+      const posts = await Post.find({ _id: { $in: postIds }, status: 'public' })
+        .populate('userId', 'Username displayName avatarUrl');
+        
+      // Sắp xếp lại đúng thứ tự điểm số của Redis
+      const orderedPosts = postIds.map(id => posts.find(p => p._id.toString() === id)).filter(Boolean);
+
+      const total = await redisClient.zcard(redisKey);
+
+      return res.status(200).json({
+        success: true,
+        posts: orderedPosts,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalPosts: total
+      });
+    }
+
+    // 2. Fallback: Nếu Redis trống (User mới vào), trả về bài viết mới nhất
+    // Đồng thời kích hoạt Worker chạy ngầm để tính toán Feed cho User này
+    addJobToFeedQueue('build-feed-initial', { userId });
+
     const posts = await Post.find({ status: 'public' })
-      .populate('userId', 'Username displayName avatarUrl') // Lấy thêm thông tin người đăng
+      .populate('userId', 'Username displayName avatarUrl')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -88,7 +121,6 @@ export const updatePost = async (req, res) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
     }
 
-    // Kiểm tra quyền (chỉ tác giả mới được sửa)
     if (post.userId.toString() !== userId) {
       return res.status(403).json({ success: false, message: "Bạn không có quyền chỉnh sửa bài viết này" });
     }
@@ -132,7 +164,6 @@ export const deletePost = async (req, res) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
     }
 
-    // Kiểm tra quyền (chỉ tác giả mới được xóa)
     if (post.userId.toString() !== userId) {
       return res.status(403).json({ success: false, message: "Bạn không có quyền xóa bài viết này" });
     }
@@ -165,19 +196,15 @@ export const reactPost = async (req, res) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
     }
 
-    // 1. Lưu lại emoji cũ mà user đã thả (nếu có)
     const oldReaction = post.reactions.find(r => r.users.includes(userId));
     const oldEmoji = oldReaction ? oldReaction.emoji : null;
 
-    // 2. Xóa user khỏi tất cả các reaction hiện tại (đảm bảo chỉ có 1 emoji duy nhất)
     post.reactions.forEach(r => {
       r.users = r.users.filter(id => id.toString() !== userId.toString());
     });
-    // Xóa các reaction trống (không có user nào)
     post.reactions = post.reactions.filter(r => r.users.length > 0);
 
-    // 3. Nếu emoji mới KHÁC emoji cũ -> Thêm vào
-    // Nếu GIỐNG emoji cũ -> Tức là hành động Hủy (Toggle off), không thêm vào nữa
+    let isNewInteraction = false;
     if (emoji !== oldEmoji) {
       const existingReaction = post.reactions.find(r => r.emoji === emoji);
       if (existingReaction) {
@@ -185,12 +212,24 @@ export const reactPost = async (req, res) => {
       } else {
         post.reactions.push({ emoji, users: [userId] });
       }
+      isNewInteraction = true;
     }
 
-    // Dọn dẹp dữ liệu cũ bị lỗi (nếu có) để tránh lỗi Mongoose ValidationError
     post.reactions = post.reactions.filter(r => r && r.emoji && typeof r.emoji === 'string');
-
     const updatedPost = await post.save();
+
+    // LƯU LẠI NHẬT KÝ TƯƠNG TÁC ĐỂ PHỤC VỤ THUẬT TOÁN
+    if (isNewInteraction) {
+        await Interaction.create({
+            userId: userId,
+            postId: post._id,
+            postAuthorId: post.userId,
+            type: 'reaction'
+        });
+        
+        // Kích hoạt tính lại Feed vì Sở thích của User vừa thay đổi
+        addJobToFeedQueue('update-feed-after-interaction', { userId });
+    }
 
     res.status(200).json({
       success: true,

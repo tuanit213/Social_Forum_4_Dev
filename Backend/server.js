@@ -18,6 +18,7 @@ import http from "http";
 import Message from "./models/Message.js";
 import Conversation from "./models/Conversation.js";
 import xss from 'xss';
+import "./workers/feedWorker.js"; // Khởi chạy BullMQ Worker
 
 dotenv.config();
 
