@@ -9,13 +9,15 @@ import api from "@/services/authService";
 export default function Home() {
   const { user } = useOutletContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('feed'); // 'feed', 'following', 'explore'
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchPosts = async () => {
+      setLoading(true);
       try {
-        const res = await api.get("/posts");
+        const res = await api.get(`/posts?tab=${activeTab}`);
         if (res.data.success) {
           setPosts(res.data.posts);
         }
@@ -26,7 +28,7 @@ export default function Home() {
       }
     };
     fetchPosts();
-  }, []);
+  }, [activeTab]);
 
   const handleCreatePost = async (postData) => {
     try {
@@ -45,9 +47,29 @@ export default function Home() {
 
   return (
     <div className="w-full">
-      {/* Header cho cột giữa */}
-      <div className="sticky top-16 z-30 bg-[var(--bg-primary)]/90 backdrop-blur-md border-b border-[var(--border)] px-4 py-3">
-        <h2 className="text-xl font-bold text-[var(--text-primary)]">Trang chủ</h2>
+      {/* Header cho cột giữa & Tabs Điều Hướng */}
+      <div className="sticky top-16 z-30 bg-[var(--bg-primary)]/90 backdrop-blur-md border-b border-[var(--border)] pt-3">
+        <h2 className="text-xl font-bold text-[var(--text-primary)] px-4 mb-3">Trang chủ</h2>
+        <div className="flex px-2">
+          {[
+            { id: 'feed', label: 'Dành cho bạn' },
+            { id: 'following', label: 'Đang theo dõi' },
+            { id: 'explore', label: 'Khám phá' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`relative flex-1 py-3 text-sm font-semibold transition-colors hover:bg-[var(--bg-secondary)] rounded-t-lg ${
+                activeTab === tab.id ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+              }`}
+            >
+              {tab.label}
+              {activeTab === tab.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full" />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="p-4 space-y-6">
@@ -99,7 +121,9 @@ export default function Home() {
             <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg-secondary)] p-6 text-center">
               <p className="font-mono text-sm text-[var(--text-primary)]">Chưa có bài viết nào.</p>
               <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                Hãy tạo bài viết đầu tiên để bắt đầu cuộc thảo luận.
+                {activeTab === 'following' 
+                  ? "Bạn chưa theo dõi ai hoặc họ chưa đăng bài nào." 
+                  : "Hãy tạo bài viết đầu tiên để bắt đầu cuộc thảo luận."}
               </p>
             </div>
           )}

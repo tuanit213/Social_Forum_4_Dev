@@ -52,14 +52,55 @@ export const createPost = async (req, res) => {
   }
 };
 
-// Lấy danh sách bài viết (Sử dụng thuật toán Phân phối từ Redis)
 export const getPosts = async (req, res) => {
   try {
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 50);
     const skip = (page - 1) * limit;
     const userId = req.user.userId;
+    const tab = req.query.tab || 'feed'; // 'feed', 'following', 'explore'
 
+    if (tab === 'following') {
+      const currentUser = await User.findById(userId).select('following');
+      const followingIds = currentUser ? currentUser.following : [];
+      
+      const posts = await Post.find({ userId: { $in: followingIds }, status: 'public' })
+        .populate('userId', 'Username displayName avatarUrl')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+        
+      const total = await Post.countDocuments({ userId: { $in: followingIds }, status: 'public' });
+      
+      return res.status(200).json({
+        success: true,
+        posts,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalPosts: total
+      });
+    }
+
+    if (tab === 'explore') {
+      // Sắp xếp theo views và lượt upvotes giả lập bằng cách sort theo views giảm dần
+      const posts = await Post.find({ status: 'public' })
+        .populate('userId', 'Username displayName avatarUrl')
+        .sort({ views: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+        
+      const total = await Post.countDocuments({ status: 'public' });
+      
+      return res.status(200).json({
+        success: true,
+        posts,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalPosts: total
+      });
+    }
+
+    // Default 'feed' tab logic
     const redisKey = `feed:user:${userId}`;
     
     // 1. Kiểm tra News Feed trong Redis
