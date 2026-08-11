@@ -170,9 +170,25 @@ export default function GroupChat() {
     };
     socket.on("new_group", handleNewGroup);
 
+    const handleUpdateGroup = (group) => {
+      setConversations(prev => prev.map(c => c._id === group._id ? group : c));
+      setActiveChat(prev => prev?._id === group._id ? group : prev);
+    };
+    socket.on("update_group", handleUpdateGroup);
+
+    const handleRemoveGroup = (groupId) => {
+      setConversations(prev => prev.filter(c => c._id !== groupId));
+      setActiveChat(prev => prev?._id === groupId ? null : prev);
+    };
+    socket.on("delete_group", handleRemoveGroup);
+    socket.on("kicked_from_group", handleRemoveGroup);
+
     return () => {
       socket.off("receive_message", handleReceiveMessage);
       socket.off("new_group", handleNewGroup);
+      socket.off("update_group", handleUpdateGroup);
+      socket.off("delete_group", handleRemoveGroup);
+      socket.off("kicked_from_group", handleRemoveGroup);
       socket.off("edit_message", handleEditMessage);
       socket.off("delete_message", handleDeleteMessage);
       socket.off("receive_error", handleReceiveError);

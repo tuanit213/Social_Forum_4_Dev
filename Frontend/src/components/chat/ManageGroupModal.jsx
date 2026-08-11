@@ -7,6 +7,9 @@ export default function ManageGroupModal({ isOpen, onClose, activeChat, onUpdate
   const [allUsers, setAllUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingAction, setLoadingAction] = useState(null);
+  
+  const [groupName, setGroupName] = useState(activeChat?.groupName || "");
+  const [isEditingName, setIsEditingName] = useState(false);
 
   useEffect(() => {
     if (isOpen && activeTab === "invite") {
@@ -41,6 +44,56 @@ export default function ManageGroupModal({ isOpen, onClose, activeChat, onUpdate
       console.error("Lỗi kick thành viên:", error);
       alert(error.response?.data?.message || "Lỗi kick thành viên");
     } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleBlock = async (userId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn chặn thành viên này vĩnh viễn khỏi nhóm?")) return;
+    setLoadingAction(userId);
+    try {
+      const res = await api.put(`/chat/groups/${activeChat._id}/block/${userId}`);
+      if (res.data.success) {
+        onUpdate(res.data.group);
+      }
+    } catch (error) {
+      console.error("Lỗi block thành viên:", error);
+      alert(error.response?.data?.message || "Lỗi block thành viên");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleRename = async () => {
+    if (!groupName.trim() || groupName === activeChat.groupName) {
+      setIsEditingName(false);
+      return;
+    }
+    setLoadingAction("rename");
+    try {
+      const res = await api.put(`/chat/groups/${activeChat._id}/rename`, { groupName });
+      if (res.data.success) {
+        onUpdate(res.data.group);
+        setIsEditingName(false);
+      }
+    } catch (error) {
+      console.error("Lỗi đổi tên nhóm:", error);
+      alert(error.response?.data?.message || "Lỗi đổi tên nhóm");
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn giải tán nhóm này? Toàn bộ dữ liệu sẽ bị xóa vĩnh viễn.")) return;
+    setLoadingAction("delete");
+    try {
+      await api.delete(`/chat/groups/${activeChat._id}`);
+      // Thành công, socket sẽ xử lý việc đóng modal ở component cha
+      onClose();
+    } catch (error) {
+      console.error("Lỗi xóa nhóm:", error);
+      alert(error.response?.data?.message || "Lỗi xóa nhóm");
       setLoadingAction(null);
     }
   };
@@ -89,14 +142,24 @@ export default function ManageGroupModal({ isOpen, onClose, activeChat, onUpdate
                 </div>
               </div>
               {!isAdmin && p.status !== 'pending' && (
-                <button 
-                  onClick={() => handleKick(p._id)}
-                  disabled={loadingAction === p._id}
-                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-full transition disabled:opacity-50"
-                  title="Kick"
-                >
-                  <UserMinus size={18} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={() => handleKick(p._id)}
+                    disabled={loadingAction === p._id}
+                    className="p-2 text-yellow-500 hover:bg-yellow-500/10 rounded-full transition disabled:opacity-50"
+                    title="Kick"
+                  >
+                    <UserMinus size={18} />
+                  </button>
+                  <button 
+                    onClick={() => handleBlock(p._id)}
+                    disabled={loadingAction === p._id}
+                    className="p-2 text-red-500 hover:bg-red-500/10 rounded-full transition disabled:opacity-50"
+                    title="Block vĩnh viễn"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
               )}
             </div>
           );
@@ -162,7 +225,34 @@ export default function ManageGroupModal({ isOpen, onClose, activeChat, onUpdate
       <div className="bg-[var(--bg-primary)] w-full max-w-md rounded-2xl border border-[var(--border)] shadow-2xl flex flex-col max-h-[80vh]">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-          <h2 className="text-xl font-bold text-[var(--text-primary)]">Quản lý nhóm</h2>
+          {isEditingName && activeChat.groupAdmin === (JSON.parse(localStorage.getItem('user'))?._id || JSON.parse(localStorage.getItem('user'))?.id) ? (
+            <div className="flex flex-1 items-center gap-2 mr-4">
+              <input 
+                type="text" 
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded px-2 py-1 text-[var(--text-primary)] text-sm focus:outline-none"
+                autoFocus
+              />
+              <button 
+                onClick={handleRename}
+                disabled={loadingAction === "rename"}
+                className="text-xs bg-[#00a2ff] text-white px-3 py-1 rounded disabled:opacity-50"
+              >
+                Lưu
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-1 items-center gap-2">
+              <h2 className="text-xl font-bold text-[var(--text-primary)] truncate" title={activeChat.groupName}>{activeChat.groupName}</h2>
+              {activeChat.groupAdmin === (JSON.parse(localStorage.getItem('user'))?._id || JSON.parse(localStorage.getItem('user'))?.id) && (
+                <button onClick={() => setIsEditingName(true)} className="text-[var(--text-secondary)] hover:text-[#00a2ff]">
+                  <Search size={14} className="hidden" /> 
+                  <span className="text-xs text-[#00a2ff] ml-2 cursor-pointer">Sửa tên</span>
+                </button>
+              )}
+            </div>
+          )}
           <button onClick={onClose} className="p-1 rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition">
             <X size={20} />
           </button>
@@ -188,6 +278,19 @@ export default function ManageGroupModal({ isOpen, onClose, activeChat, onUpdate
         <div className="p-4 flex-1 overflow-hidden flex flex-col">
           {activeTab === 'members' ? renderMembers() : renderInvite()}
         </div>
+
+        {/* Footer (Delete Group) */}
+        {activeChat.groupAdmin === (JSON.parse(localStorage.getItem('user'))?._id || JSON.parse(localStorage.getItem('user'))?.id) && (
+          <div className="p-4 border-t border-[var(--border)] flex justify-end">
+            <button 
+              onClick={handleDeleteGroup}
+              disabled={loadingAction === "delete"}
+              className="bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-4 py-2 rounded-xl transition font-medium disabled:opacity-50 text-sm"
+            >
+              Giải tán nhóm
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

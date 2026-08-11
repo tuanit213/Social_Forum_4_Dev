@@ -31,6 +31,12 @@ const conversationSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    bannedMembers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     unreadCounts: {
       type: Map,
       of: Number,

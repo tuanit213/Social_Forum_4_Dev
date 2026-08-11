@@ -175,7 +175,9 @@ export const createGroup = async (req, res, next) => {
       pendingMembers: memberIds.filter(id => id !== userId), // Mời các thành viên khác
     });
 
-    const populatedGroup = await newGroup.populate("participants pendingMembers", "username displayName avatarUrl");
+    const populatedGroup = await Conversation.findById(newGroup._id)
+      .populate("participants pendingMembers", "Username displayName avatarUrl")
+      .populate("lastMessage");
 
     const io = req.app.get("io");
     if (io) {
@@ -190,16 +192,58 @@ export const createGroup = async (req, res, next) => {
   }
 };
 
+// @desc    Sửa tên nhóm
+// @route   PUT /api/chat/groups/:id/rename
+// @access  Private
+export const renameGroup = async (req, res, next) => {
+  try {
+    const { groupId } = req.params;
+    const { groupName } = req.body;
+    const userId = req.user.userId;
+
+    if (!groupName || typeof groupName !== 'string' || !groupName.trim()) {
+      return res.status(400).json({ success: false, message: "Tên nhóm không hợp lệ" });
+    }
+
+    const group = await Conversation.findById(groupId);
+    if (!group || !group.isGroup) {
+      return res.status(404).json({ success: false, message: "Nhóm không tồn tại" });
+    }
+
+    if (group.groupAdmin.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "Chỉ Admin mới có quyền đổi tên nhóm" });
+    }
+
+    group.groupName = xss(groupName.trim());
+    await group.save();
+
+    const populatedGroup = await Conversation.findById(groupId)
+      .populate("participants pendingMembers", "Username displayName avatarUrl")
+      .populate("lastMessage");
+
+    const io = req.app.get("io");
+    if (io) {
+      populatedGroup.participants.forEach(participantId => {
+        io.to(participantId._id.toString()).emit("update_group", populatedGroup);
+      });
+    }
+
+    res.status(200).json({ success: true, message: "Đã cập nhật tên nhóm", group: populatedGroup });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Admin mời thêm thành viên vào Group
 // @route   PUT /api/chat/groups/:id/invite
 // @access  Private
 export const inviteToGroup = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { groupId } = req.params;
     const { memberIds } = req.body;
     const userId = req.user.userId;
 
-    const group = await Conversation.findById(id);
+    const group = await Conversation.findById(groupId);
     if (!group || !group.isGroup) {
       return res.status(404).json({ success: false, message: "Nhóm không tồn tại" });
     }
@@ -208,15 +252,21 @@ export const inviteToGroup = async (req, res, next) => {
       return res.status(403).json({ success: false, message: "Chỉ Admin mới có quyền mời thành viên" });
     }
 
-    // Thêm các user vào pendingMembers nếu họ chưa ở trong participants hoặc pendingMembers
+    // Thêm các user vào pendingMembers nếu họ chưa ở trong participants, pendingMembers, hoặc bannedMembers
     const newPending = memberIds.filter(mId => 
-      !group.participants.includes(mId) && !group.pendingMembers.includes(mId)
+      !group.participants.some(p => p.toString() === mId) && 
+      !group.pendingMembers.some(p => p.toString() === mId) &&
+      (!group.bannedMembers || !group.bannedMembers.some(p => p.toString() === mId))
     );
+
+    if (newPending.length === 0) {
+      return res.status(400).json({ success: false, message: "Người dùng đã có trong nhóm, đang chờ duyệt, hoặc đã bị cấm." });
+    }
 
     group.pendingMembers.push(...newPending);
     await group.save();
     
-    const populatedGroup = await Conversation.findById(id).populate("participants pendingMembers", "username displayName avatarUrl");
+    const populatedGroup = await Conversation.findById(groupId).populate("participants pendingMembers", "Username displayName avatarUrl");
 
     const io = req.app.get("io");
     if (io) {
@@ -236,26 +286,40 @@ export const inviteToGroup = async (req, res, next) => {
 // @access  Private
 export const acceptGroupInvite = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { groupId } = req.params;
     const userId = req.user.userId;
 
-    const group = await Conversation.findById(id);
+    const group = await Conversation.findById(groupId);
     if (!group || !group.isGroup) {
       return res.status(404).json({ success: false, message: "Nhóm không tồn tại" });
     }
 
-    if (!group.pendingMembers.includes(userId)) {
-      return res.status(400).json({ success: false, message: "Bạn không có lời mời vào nhóm này" });
+    if (!group.pendingMembers.some(mId => mId.toString() === userId)) {
+      return res.status(400).json({ success: false, message: "Bạn không có lời mời tham gia nhóm này" });
     }
 
     // Chuyển từ pending sang participants
     group.pendingMembers = group.pendingMembers.filter(mId => mId.toString() !== userId);
-    if (!group.participants.includes(userId)) {
+    if (!group.participants.some(pId => pId.toString() === userId)) {
       group.participants.push(userId);
     }
     
     await group.save();
-    res.status(200).json({ success: true, message: "Đã tham gia nhóm", group });
+    
+    // Populate để trả về group hợp lệ cho frontend hiển thị
+    const populatedGroup = await Conversation.findById(group._id)
+      .populate("participants", "Username displayName avatarUrl")
+      .populate("pendingMembers", "Username displayName avatarUrl")
+      .populate("lastMessage");
+      
+    const io = req.app.get("io");
+    if (io) {
+      populatedGroup.participants.forEach(participantId => {
+        io.to(participantId._id.toString()).emit("update_group", populatedGroup);
+      });
+    }
+
+    res.status(200).json({ success: true, message: "Đã tham gia nhóm", group: populatedGroup });
   } catch (error) {
     next(error);
   }
@@ -266,17 +330,30 @@ export const acceptGroupInvite = async (req, res, next) => {
 // @access  Private
 export const rejectGroupInvite = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { groupId } = req.params;
     const userId = req.user.userId;
 
-    const group = await Conversation.findById(id);
+    const group = await Conversation.findById(groupId);
     if (!group || !group.isGroup) {
       return res.status(404).json({ success: false, message: "Nhóm không tồn tại" });
     }
 
+    // Xóa khỏi pendingMembers
     group.pendingMembers = group.pendingMembers.filter(mId => mId.toString() !== userId);
     await group.save();
-    
+
+    const populatedGroup = await Conversation.findById(group._id)
+      .populate("participants", "Username displayName avatarUrl")
+      .populate("pendingMembers", "Username displayName avatarUrl")
+      .populate("lastMessage");
+      
+    const io = req.app.get("io");
+    if (io) {
+      populatedGroup.participants.forEach(participantId => {
+        io.to(participantId._id.toString()).emit("update_group", populatedGroup);
+      });
+    }
+
     res.status(200).json({ success: true, message: "Đã từ chối lời mời" });
   } catch (error) {
     next(error);
@@ -288,10 +365,10 @@ export const rejectGroupInvite = async (req, res, next) => {
 // @access  Private
 export const kickFromGroup = async (req, res, next) => {
   try {
-    const { id, userId: targetUserId } = req.params;
+    const { groupId, memberId: targetUserId } = req.params;
     const adminId = req.user.userId;
 
-    const group = await Conversation.findById(id);
+    const group = await Conversation.findById(groupId);
     if (!group || !group.isGroup) {
       return res.status(404).json({ success: false, message: "Nhóm không tồn tại" });
     }
@@ -305,9 +382,112 @@ export const kickFromGroup = async (req, res, next) => {
     }
 
     group.participants = group.participants.filter(mId => mId.toString() !== targetUserId);
+    group.pendingMembers = group.pendingMembers.filter(mId => mId.toString() !== targetUserId);
     await group.save();
     
+    const populatedGroup = await Conversation.findById(groupId)
+      .populate("participants pendingMembers", "Username displayName avatarUrl")
+      .populate("lastMessage");
+
+    const io = req.app.get("io");
+    if (io) {
+      populatedGroup.participants.forEach(participantId => {
+        io.to(participantId._id.toString()).emit("update_group", populatedGroup);
+      });
+      io.to(targetUserId).emit("kicked_from_group", groupId);
+    }
+
     res.status(200).json({ success: true, message: "Đã xóa thành viên khỏi nhóm" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Block thành viên khỏi Group (Kick và cấm quay lại)
+// @route   PUT /api/chat/groups/:groupId/block/:memberId
+// @access  Private
+export const blockFromGroup = async (req, res, next) => {
+  try {
+    const { groupId, memberId } = req.params;
+    const adminId = req.user.userId;
+
+    const group = await Conversation.findById(groupId);
+    if (!group || !group.isGroup) {
+      return res.status(404).json({ success: false, message: "Nhóm không tồn tại" });
+    }
+
+    if (group.groupAdmin.toString() !== adminId) {
+      return res.status(403).json({ success: false, message: "Chỉ Admin mới có quyền block thành viên" });
+    }
+
+    if (adminId === memberId) {
+      return res.status(400).json({ success: false, message: "Admin không thể tự block chính mình" });
+    }
+
+    // Xóa khỏi participants và pendingMembers (nếu có)
+    group.participants = group.participants.filter(mId => mId.toString() !== memberId);
+    group.pendingMembers = group.pendingMembers.filter(mId => mId.toString() !== memberId);
+    
+    // Thêm vào bannedMembers
+    if (!group.bannedMembers) group.bannedMembers = [];
+    if (!group.bannedMembers.some(mId => mId.toString() === memberId)) {
+      group.bannedMembers.push(memberId);
+    }
+
+    await group.save();
+    
+    const populatedGroup = await Conversation.findById(groupId)
+      .populate("participants pendingMembers", "Username displayName avatarUrl")
+      .populate("lastMessage");
+
+    const io = req.app.get("io");
+    if (io) {
+      populatedGroup.participants.forEach(participantId => {
+        io.to(participantId._id.toString()).emit("update_group", populatedGroup);
+      });
+      // Gửi event riêng cho người bị block để tự động thoát giao diện nếu đang mở
+      io.to(memberId).emit("kicked_from_group", groupId);
+    }
+    
+    res.status(200).json({ success: true, message: "Đã block thành viên khỏi nhóm", group: populatedGroup });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Xóa (Giải tán) Group
+// @route   DELETE /api/chat/groups/:id
+// @access  Private
+export const deleteGroup = async (req, res, next) => {
+  try {
+    const { groupId } = req.params;
+    const adminId = req.user.userId;
+
+    const group = await Conversation.findById(groupId);
+    if (!group || !group.isGroup) {
+      return res.status(404).json({ success: false, message: "Nhóm không tồn tại" });
+    }
+
+    if (group.groupAdmin.toString() !== adminId) {
+      return res.status(403).json({ success: false, message: "Chỉ Admin mới có quyền xóa nhóm" });
+    }
+
+    const participants = [...group.participants];
+
+    // Xóa tất cả tin nhắn thuộc nhóm
+    await Message.deleteMany({ conversationId: groupId });
+    
+    // Xóa nhóm
+    await Conversation.findByIdAndDelete(groupId);
+
+    const io = req.app.get("io");
+    if (io) {
+      participants.forEach(participantId => {
+        io.to(participantId.toString()).emit("delete_group", groupId);
+      });
+    }
+
+    res.status(200).json({ success: true, message: "Đã giải tán nhóm" });
   } catch (error) {
     next(error);
   }
@@ -318,10 +498,10 @@ export const kickFromGroup = async (req, res, next) => {
 // @access  Private
 export const leaveGroup = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    const { groupId } = req.params;
     const userId = req.user.userId;
 
-    const group = await Conversation.findById(id);
+    const group = await Conversation.findById(groupId);
     if (!group || !group.isGroup) {
       return res.status(404).json({ success: false, message: "Nhóm không tồn tại" });
     }
@@ -344,6 +524,17 @@ export const leaveGroup = async (req, res, next) => {
     group.participants = group.participants.filter(mId => mId.toString() !== userId);
     await group.save();
     
+    const populatedGroup = await Conversation.findById(groupId)
+      .populate("participants pendingMembers", "Username displayName avatarUrl")
+      .populate("lastMessage");
+
+    const io = req.app.get("io");
+    if (io && populatedGroup.participants.length > 0) {
+      populatedGroup.participants.forEach(participantId => {
+        io.to(participantId._id.toString()).emit("update_group", populatedGroup);
+      });
+    }
+
     res.status(200).json({ success: true, message: "Đã rời nhóm thành công" });
   } catch (error) {
     next(error);

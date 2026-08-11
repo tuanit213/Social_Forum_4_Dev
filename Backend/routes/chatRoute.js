@@ -6,10 +6,13 @@ import {
   searchMessages,
   hideConversation,
   createGroup,
+  renameGroup,
   inviteToGroup,
   acceptGroupInvite,
   rejectGroupInvite,
   kickFromGroup,
+  blockFromGroup,
+  deleteGroup,
   leaveGroup,
   editMessage,
   deleteMessage
@@ -30,11 +33,14 @@ router.delete("/conversations/:id/hide", validateObjectId("id"), hideConversatio
 
 // Group Chat Routes
 router.post("/groups", createGroup);
+router.put("/groups/:groupId/rename", validateObjectId("groupId"), renameGroup);
 router.post("/groups/:groupId/invite", validateObjectId("groupId"), inviteToGroup);
 router.put("/groups/:groupId/accept", validateObjectId("groupId"), acceptGroupInvite);
 router.put("/groups/:groupId/reject", validateObjectId("groupId"), rejectGroupInvite);
 router.delete("/groups/:groupId/kick/:memberId", validateObjectId("groupId"), validateObjectId("memberId"), kickFromGroup);
+router.put("/groups/:groupId/block/:memberId", validateObjectId("groupId"), validateObjectId("memberId"), blockFromGroup);
 router.put("/groups/:groupId/leave", validateObjectId("groupId"), leaveGroup);
+router.delete("/groups/:groupId", validateObjectId("groupId"), deleteGroup);
 
 // Edit/Delete Messages
 router.put("/messages/:messageId", validateObjectId("messageId"), editMessage);
