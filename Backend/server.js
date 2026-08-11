@@ -17,6 +17,7 @@ import { Server } from "socket.io";
 import http from "http";
 import Message from "./models/Message.js";
 import Conversation from "./models/Conversation.js";
+import User from "./models/User.js";
 import xss from 'xss';
 import "./workers/feedWorker.js"; // Khởi chạy BullMQ Worker
 
@@ -143,6 +144,30 @@ io.on("connection", (socket) => {
 
       const safeContent = xss(data.content.trim());
 
+      // Lấy danh sách thành viên trước
+      const conversation = await Conversation.findById(data.conversationId);
+      if (!conversation) return;
+
+      // Xử lý kiểm tra Block trong chat 1-1
+      if (!conversation.isGroup) {
+        const partnerId = conversation.participants.find(p => p.toString() !== senderId);
+        if (partnerId) {
+          const [sender, partner] = await Promise.all([
+            User.findById(senderId),
+            User.findById(partnerId)
+          ]);
+
+          if (sender?.blockedUsers?.includes(partnerId)) {
+            socket.emit("receive_error", { message: "Bạn đã chặn người dùng này." });
+            return;
+          }
+          if (partner?.blockedUsers?.includes(senderId)) {
+            socket.emit("receive_error", { message: "Bạn đã bị người này chặn." });
+            return;
+          }
+        }
+      }
+
       // Lưu message vào DB
       const newMessage = await Message.create({
         conversationId: data.conversationId,
@@ -150,8 +175,6 @@ io.on("connection", (socket) => {
         content: safeContent,
       });
 
-      // Lấy danh sách thành viên trước
-      const conversation = await Conversation.findById(data.conversationId);
       if (conversation) {
         conversation.lastMessage = newMessage._id;
         

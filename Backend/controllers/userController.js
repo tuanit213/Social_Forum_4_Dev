@@ -138,6 +138,7 @@ export const getMyProfile = async (req, res) => {
         websiteUrl: user.websiteUrl || "",
         facebookUrl: user.facebookUrl || "",
         socialLinks: user.socialLinks || [],
+        blockedUsers: user.blockedUsers || [],
       },
     });
   } catch (error) {
@@ -213,6 +214,46 @@ export const toggleFollowUser = async (req, res) => {
     }
   } catch (error) {
     console.error("Lỗi theo dõi người dùng:", error);
+    res.status(500).json({ success: false, message: "Lỗi hệ thống" });
+  }
+};
+
+// @desc    Chặn / Bỏ chặn người dùng
+// @route   PUT /api/users/:id/block
+// @access  Private
+export const toggleBlockUser = async (req, res) => {
+  try {
+    const targetUserId = req.params.id;
+    const currentUserId = req.user.userId;
+
+    if (targetUserId === currentUserId) {
+      return res.status(400).json({ success: false, message: "Không thể tự chặn chính mình" });
+    }
+
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+    }
+
+    const currentUser = await User.findById(currentUserId);
+    const isBlocked = currentUser.blockedUsers?.includes(targetUserId);
+    
+    if (isBlocked) {
+      // Unblock
+      await User.findByIdAndUpdate(currentUserId, { $pull: { blockedUsers: targetUserId } });
+      return res.status(200).json({ success: true, isBlocked: false, message: "Đã bỏ chặn người dùng này" });
+    } else {
+      // Block
+      await User.findByIdAndUpdate(currentUserId, { $addToSet: { blockedUsers: targetUserId } });
+      
+      // Hủy theo dõi nhau khi chặn
+      await User.findByIdAndUpdate(targetUserId, { $pull: { followers: currentUserId, following: currentUserId } });
+      await User.findByIdAndUpdate(currentUserId, { $pull: { followers: targetUserId, following: targetUserId } });
+
+      return res.status(200).json({ success: true, isBlocked: true, message: "Đã chặn người dùng này" });
+    }
+  } catch (error) {
+    console.error("Lỗi chặn người dùng:", error);
     res.status(500).json({ success: false, message: "Lỗi hệ thống" });
   }
 };

@@ -18,7 +18,8 @@ router.put("/me/dashboard", verifyToken, validateDashboardProfile, updateMyDashb
 router.get("/profile/:username", verifyToken, getUserProfile);
 router.put("/profile/:username/follow", verifyToken, toggleFollowUser);
 
-import { getAllUsers } from "../controllers/userController.js";
+import { getAllUsers, toggleBlockUser } from "../controllers/userController.js";
 router.get("/", verifyToken, getAllUsers);
+router.put("/:id/block", verifyToken, toggleBlockUser);
 
 export default router;

@@ -31,6 +31,13 @@ export default function GroupChat() {
 
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editContent, setEditContent] = useState("");
+  const [blockedUsers, setBlockedUsers] = useState(user.blockedUsers || []);
+
+  useEffect(() => {
+    if (user?.blockedUsers) {
+      setBlockedUsers(user.blockedUsers);
+    }
+  }, [user?.blockedUsers]);
 
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -149,6 +156,11 @@ export default function GroupChat() {
     };
     socket.on("delete_message", handleDeleteMessage);
     
+    const handleReceiveError = (err) => {
+      alert(err.message || "Không thể gửi tin nhắn.");
+    };
+    socket.on("receive_error", handleReceiveError);
+    
     const handleNewGroup = (group) => {
       setConversations(prev => {
         const exists = prev.find(c => c._id === group._id);
@@ -163,6 +175,7 @@ export default function GroupChat() {
       socket.off("new_group", handleNewGroup);
       socket.off("edit_message", handleEditMessage);
       socket.off("delete_message", handleDeleteMessage);
+      socket.off("receive_error", handleReceiveError);
     };
   }, [socket, activeChat, user._id, user.id]);
 
@@ -252,6 +265,33 @@ export default function GroupChat() {
     } catch (error) {
       console.error("Lỗi ẩn cuộc trò chuyện:", error);
       alert(error.response?.data?.message || "Lỗi ẩn cuộc trò chuyện");
+    }
+  };
+
+  const handleToggleBlock = async () => {
+    if (!activeChat || activeChat.isGroup) return;
+    const partner = activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id));
+    if (!partner) return;
+    
+    const partnerId = partner._id || partner.id;
+    const isCurrentlyBlocked = blockedUsers.includes(partnerId);
+
+    const action = isCurrentlyBlocked ? "Bỏ chặn" : "Chặn";
+    if (!window.confirm(`Bạn có chắc chắn muốn ${action.toLowerCase()} người dùng này?`)) return;
+
+    try {
+      // api route corresponds to Backend/routes/userRoute.js which is mapped at /api/users
+      const res = await api.put(`/users/${partnerId}/block`);
+      if (res.data.success) {
+        if (res.data.isBlocked) {
+          setBlockedUsers(prev => [...prev, partnerId]);
+        } else {
+          setBlockedUsers(prev => prev.filter(id => id !== partnerId));
+        }
+      }
+    } catch (error) {
+      console.error(`Lỗi ${action.toLowerCase()} người dùng:`, error);
+      alert(error.response?.data?.message || `Lỗi ${action.toLowerCase()} người dùng`);
     }
   };
 
@@ -473,9 +513,17 @@ export default function GroupChat() {
                             </button>
                             <button 
                               onClick={() => { handleHideConversation(); setShowOptionsMenu(false); }}
-                              className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition border-t border-[var(--border)]"
+                              className="w-full text-left px-4 py-2.5 text-sm hover:bg-[var(--bg-primary)] transition border-t border-[var(--border)]"
                             >
                               Xóa cuộc trò chuyện
+                            </button>
+                            <button 
+                              onClick={() => { handleToggleBlock(); setShowOptionsMenu(false); }}
+                              className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition border-t border-[var(--border)]"
+                            >
+                              {activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id)) && blockedUsers.includes(activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id))._id || activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id)).id) 
+                                ? "Bỏ chặn người dùng" 
+                                : "Chặn người dùng"}
                             </button>
                           </>
                         )}
@@ -588,43 +636,49 @@ export default function GroupChat() {
 
             {/* Chat Input */}
             <div className="p-4 bg-[#1E1E1E] border-t border-[var(--border)]">
-              <form onSubmit={handleSendMessage} className="flex items-end gap-3">
-                <div className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-2 flex items-center gap-2 focus-within:border-[#00a2ff]/50 transition-colors relative">
-                  <button 
-                    type="button" 
-                    onClick={() => setShowEmojiPicker(prev => !prev)}
-                    className="p-2 text-[var(--text-secondary)] hover:text-[#00a2ff] hover:bg-[#00a2ff]/10 rounded-full transition"
-                  >
-                    <Smile size={20} />
-                  </button>
-                  {showEmojiPicker && (
-                    <div className="absolute left-0 z-50 mb-2 bottom-full">
-                      <EmojiPicker 
-                        onEmojiClick={(emojiObject) => {
-                          setNewMessage(prev => prev + emojiObject.emoji);
-                        }}
-                      />
-                    </div>
-                  )}
-                  <button type="button" className="p-2 text-[var(--text-secondary)] hover:text-[#00a2ff] hover:bg-[#00a2ff]/10 rounded-full transition">
-                    <ImageIcon size={20} />
-                  </button>
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Nhập tin nhắn..."
-                    className="flex-1 bg-transparent border-none outline-none text-[var(--text-primary)] text-sm py-2 px-1"
-                  />
+              {activeChat && !activeChat.isGroup && activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id)) && blockedUsers.includes(activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id))._id || activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id)).id) ? (
+                <div className="text-center p-3 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl text-[var(--text-secondary)] text-sm">
+                  Bạn đã chặn người dùng này. Hãy bỏ chặn để tiếp tục gửi tin nhắn.
                 </div>
-                <button 
-                  type="submit"
-                  disabled={!newMessage.trim()}
-                  className="p-3.5 bg-[#00a2ff] text-white rounded-2xl hover:bg-[#0088cc] transition-colors disabled:opacity-50 disabled:bg-white/10 shrink-0"
-                >
-                  <Send size={20} />
-                </button>
-              </form>
+              ) : (
+                <form onSubmit={handleSendMessage} className="flex items-end gap-3">
+                  <div className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-2 flex items-center gap-2 focus-within:border-[#00a2ff]/50 transition-colors relative">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowEmojiPicker(prev => !prev)}
+                      className="p-2 text-[var(--text-secondary)] hover:text-[#00a2ff] hover:bg-[#00a2ff]/10 rounded-full transition"
+                    >
+                      <Smile size={20} />
+                    </button>
+                    {showEmojiPicker && (
+                      <div className="absolute left-0 z-50 mb-2 bottom-full">
+                        <EmojiPicker 
+                          onEmojiClick={(emojiObject) => {
+                            setNewMessage(prev => prev + emojiObject.emoji);
+                          }}
+                        />
+                      </div>
+                    )}
+                    <button type="button" className="p-2 text-[var(--text-secondary)] hover:text-[#00a2ff] hover:bg-[#00a2ff]/10 rounded-full transition">
+                      <ImageIcon size={20} />
+                    </button>
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Nhập tin nhắn..."
+                      className="flex-1 bg-transparent border-none outline-none text-[var(--text-primary)] text-sm py-2 px-1"
+                    />
+                  </div>
+                  <button 
+                    type="submit"
+                    disabled={!newMessage.trim()}
+                    className="p-3.5 bg-[#00a2ff] text-white rounded-2xl hover:bg-[#0088cc] transition-colors disabled:opacity-50 disabled:bg-white/10 shrink-0"
+                  >
+                    <Send size={20} />
+                  </button>
+                </form>
+              )}
             </div>
           </>
         ) : (

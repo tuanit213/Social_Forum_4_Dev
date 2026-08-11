@@ -1,6 +1,6 @@
-import mogoose from "mongoose";
+import mongoose from "mongoose";
 
-const userSchema = new mogoose.Schema({
+const userSchema = new mongoose.Schema({
     Username: {
         type: String,
         required: true,
@@ -115,11 +115,15 @@ const userSchema = new mogoose.Schema({
         topContribution: { type: String, trim: true, maxlength: 180, default: "" }
     },
     followers: [{
-        type: mogoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     }],
     following: [{
-        type: mogoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    }],
+    blockedUsers: [{
+        type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     }],
 },
@@ -128,5 +132,5 @@ const userSchema = new mogoose.Schema({
     }
 )
 
-const User = mogoose.model("User", userSchema);
+const User = mongoose.model("User", userSchema);
 export default User;
