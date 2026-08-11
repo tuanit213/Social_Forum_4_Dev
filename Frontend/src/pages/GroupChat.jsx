@@ -32,6 +32,34 @@ export default function GroupChat() {
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editContent, setEditContent] = useState("");
   const [blockedUsers, setBlockedUsers] = useState(user.blockedUsers || []);
+  const [showAvatarDropdownId, setShowAvatarDropdownId] = useState(null);
+
+  const handleViewUserProfileByUsername = (targetUsername) => {
+    if (targetUsername) {
+      navigate(`/profile/${targetUsername}`);
+    }
+  };
+
+  const handleStartDirectMessage = async (targetUserId) => {
+    try {
+      const existingChat = conversations.find(c => 
+        !c.isGroup && c.participants.length === 2 && 
+        c.participants.some(p => String(p._id || p.id) === String(targetUserId))
+      );
+      if (existingChat) {
+        setActiveChat(existingChat);
+      } else {
+        const res = await api.post("/chat/conversations", { participantId: targetUserId });
+        if (res.data.success) {
+          const newConvo = res.data.conversation;
+          setConversations(prev => [newConvo, ...prev]);
+          setActiveChat(newConvo);
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi khi tạo tin nhắn mới:", error);
+    }
+  };
 
   useEffect(() => {
     if (user?.blockedUsers) {
@@ -372,14 +400,16 @@ export default function GroupChat() {
             
             let displayName = "Nhóm chat";
             let displayInitial = "?";
+            let partnerAvatar = null;
             
             if (isGroup) {
               displayName = convo.groupName || "Nhóm";
-              displayInitial = displayName.charAt(0);
+              displayInitial = displayName.charAt(0).toUpperCase();
             } else {
               const partner = convo.participants.find(p => p._id !== (user._id || user.id)) || convo.participants[0];
-              displayName = partner?.displayName || partner?.username || "Người dùng";
-              displayInitial = displayName.charAt(0);
+              displayName = partner?.displayName || partner?.Username || partner?.username || "Người dùng";
+              displayInitial = displayName.charAt(0).toUpperCase();
+              partnerAvatar = partner?.avatarUrl;
             }
 
             const unreadCount = convo.unreadCounts?.[user._id || user.id] || 0;
@@ -395,8 +425,8 @@ export default function GroupChat() {
                   ${isPending ? "opacity-80" : ""}
                 `}
               >
-                <div className="w-12 h-12 rounded-full bg-[#00a2ff] flex items-center justify-center font-bold text-white text-lg shrink-0">
-                  {isGroup ? <Users size={20} /> : displayInitial}
+                <div className="w-12 h-12 rounded-full bg-[#00a2ff] flex items-center justify-center font-bold text-white text-lg shrink-0 overflow-hidden">
+                  {isGroup ? <Users size={20} /> : (partnerAvatar ? <img src={partnerAvatar} alt="avatar" className="w-full h-full object-cover" /> : displayInitial)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
@@ -456,12 +486,29 @@ export default function GroupChat() {
                 onClick={() => { if (!activeChat.isGroup) handleViewProfile(); }}
                 title={!activeChat.isGroup ? "Xem hồ sơ" : ""}
               >
-                <div className="w-10 h-10 rounded-full bg-[#00a2ff] flex items-center justify-center font-bold text-white text-lg">
-                  {activeChat.isGroup ? <Users size={20} /> : (activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id))?.displayName?.charAt(0) || "?")}
-                </div>
+                {activeChat.isGroup ? (
+                  <div className="w-10 h-10 rounded-full bg-[#00a2ff] flex items-center justify-center font-bold text-white text-lg shrink-0">
+                    <Users size={20} />
+                  </div>
+                ) : (
+                  (() => {
+                    const partner = activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id)) || activeChat.participants[0];
+                    const pName = partner?.displayName || partner?.Username || partner?.username || "?";
+                    const pInitial = pName.charAt(0).toUpperCase();
+                    return (
+                      <div className="w-10 h-10 rounded-full bg-[#00a2ff] flex items-center justify-center font-bold text-white text-lg shrink-0 overflow-hidden">
+                        {partner?.avatarUrl ? <img src={partner?.avatarUrl} alt="avatar" className="w-full h-full object-cover" /> : pInitial}
+                      </div>
+                    );
+                  })()
+                )}
                 <div>
                   <h3 className="font-bold text-[var(--text-primary)]">
-                    {activeChat.isGroup ? activeChat.groupName : (activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id))?.displayName || "Người dùng")}
+                    {activeChat.isGroup 
+                      ? activeChat.groupName 
+                      : ((activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id)) || activeChat.participants[0])?.displayName || 
+                         (activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id)) || activeChat.participants[0])?.Username || 
+                         (activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id)) || activeChat.participants[0])?.username || "Người dùng")}
                   </h3>
                   <p className="text-xs text-green-500">
                     {activeChat.isGroup ? `${activeChat.participants.length} thành viên` : "Đang hoạt động"}
@@ -581,6 +628,25 @@ export default function GroupChat() {
                   }
                 }
 
+                let senderName = "Người dùng";
+                let senderAvatar = null;
+                let senderInitial = "?";
+                let senderUsername = "";
+                if (!isMine && typeof msg.senderId === 'object' && msg.senderId !== null) {
+                  senderName = msg.senderId.displayName || msg.senderId.Username || msg.senderId.username || "Người dùng";
+                  senderInitial = senderName.charAt(0).toUpperCase();
+                  senderAvatar = msg.senderId.avatarUrl;
+                  senderUsername = msg.senderId.Username || msg.senderId.username;
+                } else if (!isMine) {
+                  const p = activeChat.participants.find(p => String(p._id || p.id) === senderIdStr);
+                  if (p) {
+                    senderName = p.displayName || p.Username || p.username || "Người dùng";
+                    senderInitial = senderName.charAt(0).toUpperCase();
+                    senderAvatar = p.avatarUrl;
+                    senderUsername = p.Username || p.username;
+                  }
+                }
+
                 return (
                   <React.Fragment key={msg._id}>
                     {showTimestamp && (
@@ -610,36 +676,89 @@ export default function GroupChat() {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 max-w-[70%]">
-                          {isMine && !msg.isDeleted && (
-                            <div className="flex items-center gap-1 transition-opacity opacity-0 group-hover:opacity-100 shrink-0">
-                              <button 
-                                onClick={() => {
-                                  setEditingMessageId(msg._id);
-                                  setEditContent(msg.content);
-                                }}
-                                className="p-1.5 text-[var(--text-secondary)] hover:text-[#00a2ff] hover:bg-[#00a2ff]/10 rounded-full transition"
+                        <div className={`flex items-end gap-2 ${isMine ? "max-w-[70%]" : "max-w-[85%]"}`}>
+                          {!isMine && activeChat.isGroup && (
+                            <div className="relative">
+                              <div 
+                                className="w-8 h-8 rounded-full bg-[#00a2ff] flex items-center justify-center font-bold text-white text-xs shrink-0 overflow-hidden mb-1 shadow-sm cursor-pointer hover:opacity-80 transition"
+                                title={senderName}
+                                onClick={() => setShowAvatarDropdownId(showAvatarDropdownId === msg._id ? null : msg._id)}
                               >
-                                <Edit size={14} />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteMsg(msg._id)}
-                                className="p-1.5 text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 rounded-full transition"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                                {senderAvatar ? (
+                                  <img src={senderAvatar} alt="avatar" className="w-full h-full object-cover" />
+                                ) : (
+                                  senderInitial
+                                )}
+                              </div>
+                              
+                              {showAvatarDropdownId === msg._id && (
+                                <>
+                                  <div 
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setShowAvatarDropdownId(null)}
+                                  />
+                                  <div className="absolute top-full left-0 mt-1 w-40 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)] shadow-xl z-50 overflow-hidden">
+                                    <button 
+                                      onClick={() => {
+                                        handleViewUserProfileByUsername(senderUsername);
+                                        setShowAvatarDropdownId(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[#00a2ff]/10 transition"
+                                    >
+                                      Xem trang cá nhân
+                                    </button>
+                                    <button 
+                                      onClick={() => {
+                                        handleStartDirectMessage(senderIdStr);
+                                        setShowAvatarDropdownId(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[#00a2ff]/10 transition border-t border-[var(--border)]"
+                                    >
+                                      Nhắn tin riêng
+                                    </button>
+                                  </div>
+                                </>
+                              )}
                             </div>
                           )}
-                          <div 
-                            style={{ fontFamily: "'Cascadia Code', Consolas, 'Courier New', monospace", wordBreak: "break-word" }}
-                            className={`px-4 py-2.5 rounded-2xl shadow-sm ${
-                              isMine 
-                              ? "bg-gradient-to-br from-[#c32fec] to-[#6366f1] text-white rounded-br-sm" 
-                              : "bg-[#252527] text-[var(--text-primary)] rounded-bl-sm border border-[var(--border)]"
-                            } ${msg.isDeleted ? "italic opacity-60" : ""}`}
-                          >
-                            {msg.content}
-                            {msg.isEdited && !msg.isDeleted && <span className="text-[10px] ml-2 opacity-70">(đã chỉnh sửa)</span>}
+                          <div className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
+                            {!isMine && activeChat.isGroup && (
+                              <span className="text-[11px] text-[var(--text-secondary)] font-medium ml-1 mb-1">
+                                {senderName}
+                              </span>
+                            )}
+                            <div className="flex items-center gap-2">
+                              {isMine && !msg.isDeleted && (
+                                <div className="flex items-center gap-1 transition-opacity opacity-0 group-hover:opacity-100 shrink-0">
+                                  <button 
+                                    onClick={() => {
+                                      setEditingMessageId(msg._id);
+                                      setEditContent(msg.content);
+                                    }}
+                                    className="p-1.5 text-[var(--text-secondary)] hover:text-[#00a2ff] hover:bg-[#00a2ff]/10 rounded-full transition"
+                                  >
+                                    <Edit size={14} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteMsg(msg._id)}
+                                    className="p-1.5 text-[var(--text-secondary)] hover:text-red-500 hover:bg-red-500/10 rounded-full transition"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              )}
+                              <div 
+                                style={{ fontFamily: "'Cascadia Code', Consolas, 'Courier New', monospace", wordBreak: "break-word" }}
+                                className={`px-4 py-2.5 rounded-2xl shadow-sm ${
+                                  isMine 
+                                  ? "bg-gradient-to-br from-[#c32fec] to-[#6366f1] text-white rounded-br-sm" 
+                                  : "bg-[#252527] text-[var(--text-primary)] rounded-bl-sm border border-[var(--border)]"
+                                } ${msg.isDeleted ? "italic opacity-60" : ""}`}
+                              >
+                                {msg.content}
+                                {msg.isEdited && !msg.isDeleted && <span className="text-[10px] ml-2 opacity-70">(đã chỉnh sửa)</span>}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}

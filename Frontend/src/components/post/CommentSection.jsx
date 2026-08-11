@@ -46,7 +46,7 @@ export default function CommentSection({ post, currentUser, onClose, onCommentCo
 
   const currentUserId = currentUser?._id || currentUser?.id;
 
-  const postAuthorName = post.userId?.displayName || post.userId?.username || 'Người dùng ẩn danh';
+  const postAuthorName = post.userId?.displayName || post.userId?.Username || post.userId?.username || 'Người dùng ẩn danh';
   const postInitial = postAuthorName.charAt(0).toUpperCase();
   const postFormattedDate = post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: vi }) : 'Vừa xong';
 
@@ -241,8 +241,9 @@ export default function CommentSection({ post, currentUser, onClose, onCommentCo
 
   const CommentItem = ({ comment, isReply = false }) => {
     const isCommentAuthor = (comment.userId?._id || comment.userId) === currentUserId;
-    const authorName = comment.userId?.displayName || comment.userId?.username || 'Ẩn danh';
+    const authorName = comment.userId?.displayName || comment.userId?.Username || comment.userId?.username || 'Ẩn danh';
     const initial = authorName.charAt(0).toUpperCase();
+    const avatarUrl = comment.userId?.avatarUrl;
     const timeAgo = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: vi });
     const isEditing = editingId === comment._id;
     const hasReactions = comment.reactions && comment.reactions.length > 0;
@@ -251,8 +252,12 @@ export default function CommentSection({ post, currentUser, onClose, onCommentCo
     return (
       <div className={`flex gap-3 group ${isReply ? 'mt-4' : ''}`}>
         <div className="flex flex-col items-center">
-          <div className={`rounded-full bg-[var(--accent)] flex items-center justify-center font-bold text-white shrink-0 z-10 shadow-md ${isReply ? 'w-7 h-7 text-xs' : 'w-9 h-9 text-sm'}`}>
-            {initial}
+          <div className={`rounded-full bg-[var(--accent)] flex items-center justify-center font-bold text-white shrink-0 z-10 shadow-md overflow-hidden ${isReply ? 'w-7 h-7 text-xs' : 'w-9 h-9 text-sm'}`}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={authorName} className="w-full h-full object-cover" />
+            ) : (
+              initial
+            )}
           </div>
           {!isReply && <div className="w-[2px] h-full bg-[var(--border)] mt-2 rounded-full group-last:hidden"></div>}
         </div>
@@ -428,8 +433,12 @@ export default function CommentSection({ post, currentUser, onClose, onCommentCo
         {/* Main Input Form Area */}
         <div className="p-4 bg-[var(--bg-secondary)] border-t border-[var(--border)]">
           <div className="flex gap-3">
-            <div className="w-10 h-10 rounded-full bg-[var(--bg-primary)] text-[var(--accent)] flex items-center justify-center font-bold text-sm shrink-0">
-              {currentUser?.displayName?.charAt(0).toUpperCase() || currentUser?.username?.charAt(0).toUpperCase() || '?'}
+            <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center font-bold text-white shrink-0 shadow-md overflow-hidden">
+              {currentUser?.avatarUrl ? (
+                <img src={currentUser.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                currentUser?.displayName?.charAt(0).toUpperCase() || currentUser?.Username?.charAt(0).toUpperCase() || currentUser?.username?.charAt(0).toUpperCase() || '?'
+              )}
             </div>
             <div className="flex-1 relative flex flex-col border border-[var(--border)] focus-within:border-[var(--accent)] rounded-xl overflow-visible transition-colors bg-[var(--bg-primary)]">
               {replyingToId && (

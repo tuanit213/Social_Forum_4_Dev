@@ -80,8 +80,9 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
     ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true, locale: vi })
     : 'Vừa xong';
 
-  const authorName = post.userId?.displayName || post.userId?.username || 'Người dùng ẩn danh';
+  const authorName = post.userId?.displayName || post.userId?.Username || post.userId?.username || 'Người dùng ẩn danh';
   const initial = authorName.charAt(0).toUpperCase();
+  const avatarUrl = post.userId?.avatarUrl;
 
   // Đếm tổng số reaction
   const totalReactions = localPost.reactions?.reduce((acc, curr) => acc + curr.users.length, 0) || 0;
@@ -96,8 +97,12 @@ export default function PostCard({ post, currentUser, onPostDeleted, onPostUpdat
       {/* Header: User Info & Options */}
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Link to={`/profile/${post.userId?.Username || post.userId?.username}`} className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center font-bold text-white shadow-md text-lg hover:opacity-80 transition">
-            {initial}
+          <Link to={`/profile/${post.userId?.Username || post.userId?.username}`} className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center font-bold text-white shadow-md text-lg hover:opacity-80 transition overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={authorName} className="w-full h-full object-cover" />
+            ) : (
+              initial
+            )}
           </Link>
           <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
             <div className="flex items-center gap-2">
