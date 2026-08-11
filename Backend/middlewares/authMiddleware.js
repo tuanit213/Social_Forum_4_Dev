@@ -1,12 +1,20 @@
 import jwt from "jsonwebtoken";
 import { getJwtSecret } from "../utils/securityConfig.js";
+import User from "../models/User.js";
 
-export const verifyToken = (req, res, next) => {
+const BLOCKED_STATUSES = ["banned", "suspended"];
+
+const blockedAccountMessage = (status) =>
+  status === "banned"
+    ? "Tài khoản đã bị khóa vĩnh viễn"
+    : "Tài khoản đang bị tạm khóa";
+
+export const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization || req.headers.Authorization;
 
   if (!authHeader?.startsWith("Bearer ")) {
     return res.status(401).json({
-      message: "Khong tim thay access token, vui long dang nhap",
+      message: "Không tìm thấy access token, vui lòng đăng nhập",
     });
   }
 
@@ -18,18 +26,57 @@ export const verifyToken = (req, res, next) => {
   } catch (error) {
     console.error("JWT config error", error.message);
     return res.status(500).json({
-      message: "Cau hinh bao mat token chua hop le",
+      message: "Cấu hình bảo mật token chưa hợp lệ",
     });
   }
 
-  jwt.verify(token, jwtSecret, (err, decoded) => {
-    if (err) {
-      return res.status(403).json({
-        message: "Token khong hop le hoac da het han",
-      });
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const currentUser = await User.findById(decoded.userId).select(
+      "Username displayName email avatarUrl role status",
+    );
+
+    if (!currentUser) {
+      return res.status(401).json({ message: "Phiên đăng nhập không hợp lệ" });
+    }
+
+    if (BLOCKED_STATUSES.includes(currentUser.status)) {
+      return res.status(403).json({ message: blockedAccountMessage(currentUser.status) });
     }
 
     req.user = decoded;
+    req.currentUser = currentUser;
     next();
-  });
+  } catch (error) {
+    const message =
+      error.name === "JsonWebTokenError" || error.name === "TokenExpiredError"
+        ? "Token không hợp lệ hoặc đã hết hạn"
+        : "Lỗi hệ thống";
+    return res.status(error.name === "JsonWebTokenError" || error.name === "TokenExpiredError" ? 403 : 500).json({
+      message,
+    });
+  }
+};
+
+export const requireAdmin = async (req, res, next) => {
+  try {
+    const currentUser = req.currentUser || await User.findById(req.user?.userId).select(
+      "Username displayName email avatarUrl role status",
+    );
+
+    if (!currentUser) {
+      return res.status(401).json({ message: "Phiên đăng nhập không hợp lệ" });
+    }
+
+    const role = currentUser.role || "MEMBER";
+    if (!["ADMIN", "SUPER_ADMIN"].includes(role)) {
+      return res.status(403).json({ message: "Bạn không có quyền truy cập khu vực admin" });
+    }
+
+    req.currentUser = currentUser;
+    next();
+  } catch (error) {
+    console.error("requireAdmin error", error.name, error.message);
+    return res.status(500).json({ message: "Lỗi hệ thống" });
+  }
 };

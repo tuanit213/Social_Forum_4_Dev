@@ -1,14 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 import {
-  BookOpen,
-  Building2,
   CircleHelp,
   Home,
   MessageSquare,
   Settings,
-  Swords,
   TrendingUp,
-  Trophy,
 } from "lucide-react";
 
 export default function LeftSidebar() {
@@ -19,10 +15,6 @@ export default function LeftSidebar() {
   const navItems = [
     { icon: Home, label: "Home", path: "/" },
     { icon: MessageSquare, label: "Group Chat", path: "/group-chat" },
-    { icon: Swords, label: "Battle Code", path: "/battle-code" },
-    { icon: Building2, label: "Dev Companies", path: "/companies" },
-    { icon: BookOpen, label: "Learn", path: "/learn" },
-    { icon: Trophy, label: "Dev Challenges", path: "/challenges" },
     { icon: CircleHelp, label: "Dev Help", path: "/help" },
     { icon: TrendingUp, label: "Trending GitHub", path: "/trending" },
     { icon: Settings, label: "Settings", path: "/settings" },

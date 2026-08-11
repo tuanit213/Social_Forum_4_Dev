@@ -60,11 +60,19 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const isAdminRequest = originalRequest?.url?.startsWith("/admin");
 
     if (error.response?.status === 401 && originalRequest?.url === "/auth/refresh") {
       clearAuthState();
       window.location.href = "/login";
       return Promise.reject(error);
+    }
+
+    if (error.response?.status === 403 && isAdminRequest) {
+      const message = error.response?.data?.message || "Bạn không có quyền truy cập khu vực admin.";
+      const adminError = new Error(message);
+      adminError.status = 403;
+      return Promise.reject(adminError);
     }
 
     if (error.response?.status === 403) {
@@ -96,10 +104,12 @@ api.interceptors.response.use(
     const message =
       error.response?.data?.message ||
       (error.code === "ECONNABORTED"
-        ? "Ket noi qua thoi gian, thu lai sau."
-        : "Loi ket noi den may chu.");
+        ? "Kết nối quá thời gian, thử lại sau."
+        : "Lỗi kết nối đến máy chủ.");
 
-    return Promise.reject(new Error(message));
+    const normalizedError = new Error(message);
+    normalizedError.status = error.response?.status;
+    return Promise.reject(normalizedError);
   },
 );
 

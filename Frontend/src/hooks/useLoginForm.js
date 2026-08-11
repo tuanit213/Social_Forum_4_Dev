@@ -62,12 +62,13 @@ export function useLoginForm() {
     // 2. Gọi API
     setIsSubmitting(true);
     try {
-      await signIn({
+      const data = await signIn({
         username: formData.username,
         password: formData.password,
       });
       // 3. Thành công → điều hướng đến trang chính
-      navigate("/");
+      const role = data?.user?.role;
+      navigate(["ADMIN", "SUPER_ADMIN"].includes(role) ? "/admin" : "/");
     } catch (error) {
       setApiError(error.message);
     } finally {

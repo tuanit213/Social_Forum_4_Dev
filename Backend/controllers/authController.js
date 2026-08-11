@@ -7,8 +7,14 @@ import {
   getRefreshCookieOptions,
 } from "../utils/securityConfig.js";
 
-const SYSTEM_ERROR = "Loi he thong";
-const INVALID_CREDENTIALS = "Username hoac password khong chinh xac";
+const SYSTEM_ERROR = "Lỗi hệ thống";
+const INVALID_CREDENTIALS = "Username hoặc password không chính xác";
+const BLOCKED_STATUSES = ["banned", "suspended"];
+
+const blockedAccountMessage = (status) =>
+  status === "banned"
+    ? "Tài khoản đã bị khóa vĩnh viễn"
+    : "Tài khoản đang bị tạm khóa";
 
 const buildUserResponse = (user) => ({
   id: user._id,
@@ -16,6 +22,8 @@ const buildUserResponse = (user) => ({
   email: user.email,
   displayName: user.displayName,
   avatarUrl: user.avatarUrl,
+  role: user.role || "MEMBER",
+  status: user.status || "active",
 });
 
 const signAuthTokens = (user) => {
@@ -37,7 +45,7 @@ export const signUp = async (req, res) => {
     });
 
     if (duplicateUser) {
-      return res.status(409).json({ message: "Username hoac email da ton tai" });
+      return res.status(409).json({ message: "Username hoặc email đã tồn tại" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -49,10 +57,10 @@ export const signUp = async (req, res) => {
       displayName: `${firstName} ${lastName}`,
     });
 
-    return res.status(201).json({ message: "Dang ky thanh cong" });
+    return res.status(201).json({ message: "Đăng ký thành công" });
   } catch (error) {
     if (error?.code === 11000) {
-      return res.status(409).json({ message: "Username hoac email da ton tai" });
+      return res.status(409).json({ message: "Username hoặc email đã tồn tại" });
     }
 
     console.error("signUp error", error.name, error.message);
@@ -74,12 +82,16 @@ export const signIn = async (req, res) => {
       return res.status(401).json({ message: INVALID_CREDENTIALS });
     }
 
+    if (BLOCKED_STATUSES.includes(user.status)) {
+      return res.status(403).json({ message: blockedAccountMessage(user.status) });
+    }
+
     const { accessToken, refreshToken } = signAuthTokens(user);
 
     res.cookie("refreshToken", refreshToken, getRefreshCookieOptions());
 
     return res.status(200).json({
-      message: "Dang nhap thanh cong",
+      message: "Đăng nhập thành công",
       accessToken,
       user: buildUserResponse(user),
     });
@@ -93,19 +105,24 @@ export const refreshToken = async (req, res) => {
   try {
     const refreshTokenCookie = req.cookies.refreshToken;
     if (!refreshTokenCookie) {
-      return res.status(401).json({ message: "Khong tim thay refresh token" });
+      return res.status(401).json({ message: "Không tìm thấy refresh token" });
     }
 
     let decoded;
     try {
       decoded = jwt.verify(refreshTokenCookie, getJwtSecret());
     } catch {
-      return res.status(403).json({ message: "Refresh token khong hop le hoac da het han" });
+      return res.status(403).json({ message: "Refresh token không hợp lệ hoặc đã hết hạn" });
     }
 
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res.status(401).json({ message: "Phien dang nhap khong hop le" });
+      return res.status(401).json({ message: "Phiên đăng nhập không hợp lệ" });
+    }
+
+    if (BLOCKED_STATUSES.includes(user.status)) {
+      res.clearCookie("refreshToken", getClearRefreshCookieOptions());
+      return res.status(403).json({ message: blockedAccountMessage(user.status) });
     }
 
     const tokenPayload = { userId: user._id, username: user.Username };
@@ -124,7 +141,7 @@ export const refreshToken = async (req, res) => {
 export const signOut = async (req, res) => {
   try {
     res.clearCookie("refreshToken", getClearRefreshCookieOptions());
-    return res.status(200).json({ message: "Dang xuat thanh cong" });
+    return res.status(200).json({ message: "Đăng xuất thành công" });
   } catch (error) {
     console.error("signOut error", error.name, error.message);
     return res.status(500).json({ message: SYSTEM_ERROR });

@@ -114,6 +114,31 @@ const userSchema = new mongoose.Schema({
         competitions: { type: [String], default: [] },
         topContribution: { type: String, trim: true, maxlength: 180, default: "" }
     },
+    role: {
+        type: String,
+        enum: ["MEMBER", "MODERATOR", "ADMIN", "SUPER_ADMIN"],
+        default: "MEMBER",
+        index: true
+    },
+    status: {
+        type: String,
+        enum: ["active", "warned", "suspended", "banned"],
+        default: "active",
+        index: true
+    },
+    warnings: [{
+        reason: { type: String, trim: true, maxlength: 500 },
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        createdAt: { type: Date, default: Date.now }
+    }],
+    adminNotes: [{
+        note: { type: String, trim: true, maxlength: 1000 },
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        createdAt: { type: Date, default: Date.now }
+    }],
+    lastAdminActionAt: {
+        type: Date
+    },
     followers: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
@@ -131,6 +156,10 @@ const userSchema = new mongoose.Schema({
         timestamps: true,
     }
 )
+
+userSchema.index({ email: 1 });
+userSchema.index({ Username: 1 });
+userSchema.index({ role: 1, status: 1, createdAt: -1 });
 
 const User = mongoose.model("User", userSchema);
 export default User;
