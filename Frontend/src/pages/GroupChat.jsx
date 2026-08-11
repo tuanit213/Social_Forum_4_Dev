@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 import { Search, Send, Image as ImageIcon, Smile, MoreVertical, MessageCircle, Plus, Users, Settings, Check, X, Edit, Trash2 } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
 import api from "@/services/authService";
@@ -7,10 +7,12 @@ import { useSocket } from "@/contexts/SocketContext";
 import CreateGroupModal from "@/components/chat/CreateGroupModal";
 import ManageGroupModal from "@/components/chat/ManageGroupModal";
 import NewChatModal from "@/components/chat/NewChatModal";
+import ChatSearchModal from "@/components/chat/ChatSearchModal";
 import EmojiPicker from "emoji-picker-react";
 
 export default function GroupChat() {
   const { user } = useOutletContext();
+  const navigate = useNavigate();
   const socket = useSocket();
   const [conversations, setConversations] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
@@ -23,7 +25,9 @@ export default function GroupChat() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showManageModal, setShowManageModal] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
 
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editContent, setEditContent] = useState("");
@@ -52,7 +56,8 @@ export default function GroupChat() {
     try {
       const res = await api.get(`/chat/conversations/${conversationId}/messages?page=${pageNum}&limit=20`);
       if (res.data.success) {
-        setMessages(prev => append ? [...res.data.messages, ...prev] : res.data.messages);
+        const fetchedMsgs = res.data.messages.reverse();
+        setMessages(prev => append ? [...fetchedMsgs, ...prev] : fetchedMsgs);
         setHasMore(res.data.hasMore);
         setPage(pageNum);
       }
@@ -222,10 +227,55 @@ export default function GroupChat() {
     }
   };
 
+  const handleLeaveGroup = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn rời khỏi nhóm chat này?")) return;
+    try {
+      const res = await api.put(`/chat/groups/${activeChat._id}/leave`);
+      if (res.data.success) {
+        setConversations(prev => prev.filter(c => c._id !== activeChat._id));
+        setActiveChat(null);
+      }
+    } catch (error) {
+      console.error("Lỗi rời nhóm:", error);
+      alert(error.response?.data?.message || "Lỗi rời nhóm");
+    }
+  };
+
+  const handleHideConversation = async () => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa/ẩn cuộc trò chuyện này? (Sẽ hiện lại nếu có tin nhắn mới)")) return;
+    try {
+      const res = await api.delete(`/chat/conversations/${activeChat._id}/hide`);
+      if (res.data.success) {
+        setConversations(prev => prev.filter(c => c._id !== activeChat._id));
+        setActiveChat(null);
+      }
+    } catch (error) {
+      console.error("Lỗi ẩn cuộc trò chuyện:", error);
+      alert(error.response?.data?.message || "Lỗi ẩn cuộc trò chuyện");
+    }
+  };
+
+  const handleViewProfile = () => {
+    if (!activeChat || activeChat.isGroup) return;
+    
+    const currentUserId = String(user?._id || user?.id);
+    const partner = activeChat.participants.find(p => {
+      const pId = String(p?._id || p?.id);
+      return pId !== currentUserId;
+    });
+
+    if (partner && (partner.username || partner.Username)) {
+      const uName = partner.username || partner.Username;
+      navigate(`/profile/${uName}`);
+    } else {
+      alert("Lỗi: Không tìm thấy thông tin username của người này.");
+    }
+  };
+
   return (
     <div className="w-full flex h-[calc(100vh-64px)] overflow-hidden">
       {/* Sidebar: Danh sách chat */}
-      <div className="w-1/3 min-w-[280px] max-w-[350px] border-r border-[var(--border)] bg-[var(--bg-primary)] flex flex-col">
+      <div className="w-[30%] min-w-[280px] border-r border-[var(--border)] bg-[#171718] flex flex-col">
         <div className="p-4 border-b border-[var(--border)]">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-[var(--text-primary)]">Messages</h2>
@@ -340,18 +390,22 @@ export default function GroupChat() {
       </div>
 
       {/* Main Panel: Khung Chat */}
-      <div className="flex-1 flex flex-col bg-[#121213]">
+      <div className="flex-1 flex flex-col bg-[#1E1E1E]">
         {activeChat ? (
           <>
             {/* Chat Header */}
-            <div className="h-16 border-b border-[var(--border)] flex items-center justify-between px-6 bg-[var(--bg-primary)]">
-              <div className="flex items-center gap-3">
+            <div className="h-16 border-b border-[var(--border)] flex items-center justify-between px-6 bg-[#1E1E1E]">
+              <div 
+                className={`flex items-center gap-3 ${!activeChat.isGroup ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                onClick={() => { if (!activeChat.isGroup) handleViewProfile(); }}
+                title={!activeChat.isGroup ? "Xem hồ sơ" : ""}
+              >
                 <div className="w-10 h-10 rounded-full bg-[#00a2ff] flex items-center justify-center font-bold text-white text-lg">
-                  {activeChat.isGroup ? <Users size={20} /> : (activeChat.participants.find(p => p._id !== (user._id || user.id))?.displayName?.charAt(0) || "?")}
+                  {activeChat.isGroup ? <Users size={20} /> : (activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id))?.displayName?.charAt(0) || "?")}
                 </div>
                 <div>
                   <h3 className="font-bold text-[var(--text-primary)]">
-                    {activeChat.isGroup ? activeChat.groupName : (activeChat.participants.find(p => p._id !== (user._id || user.id))?.displayName || "Người dùng")}
+                    {activeChat.isGroup ? activeChat.groupName : (activeChat.participants.find(p => String(p._id || p.id) !== String(user._id || user.id))?.displayName || "Người dùng")}
                   </h3>
                   <p className="text-xs text-green-500">
                     {activeChat.isGroup ? `${activeChat.participants.length} thành viên` : "Đang hoạt động"}
@@ -359,15 +413,77 @@ export default function GroupChat() {
                 </div>
               </div>
               
-              {activeChat.isGroup && activeChat.groupAdmin === (user._id || user.id) && (
+              <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setShowManageModal(true)}
+                  onClick={() => setShowSearchModal(true)}
                   className="p-2 text-[var(--text-secondary)] hover:text-[#00a2ff] hover:bg-[#00a2ff]/10 rounded-full transition"
-                  title="Quản lý nhóm"
+                  title="Tìm kiếm tin nhắn"
                 >
-                  <Settings size={20} />
+                  <Search size={20} />
                 </button>
-              )}
+
+                {activeChat.isGroup && activeChat.groupAdmin === (user._id || user.id) && (
+                  <button 
+                    onClick={() => setShowManageModal(true)}
+                    className="p-2 text-[var(--text-secondary)] hover:text-[#00a2ff] hover:bg-[#00a2ff]/10 rounded-full transition"
+                    title="Quản lý nhóm"
+                  >
+                    <Settings size={20} />
+                  </button>
+                )}
+                
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowOptionsMenu(!showOptionsMenu)}
+                    className="p-2 text-[var(--text-secondary)] hover:text-[#00a2ff] hover:bg-[#00a2ff]/10 rounded-full transition"
+                    title="Tùy chọn"
+                  >
+                    <MoreVertical size={20} />
+                  </button>
+
+                  {showOptionsMenu && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowOptionsMenu(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border)] shadow-xl z-50 overflow-hidden">
+                        {activeChat.isGroup ? (
+                          <>
+                            <button 
+                              onClick={() => { setShowManageModal(true); setShowOptionsMenu(false); }}
+                              className="w-full text-left px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[#00a2ff]/10 transition"
+                            >
+                              Xem thông tin nhóm
+                            </button>
+                            <button 
+                              onClick={() => { handleLeaveGroup(); setShowOptionsMenu(false); }}
+                              className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition border-t border-[var(--border)]"
+                            >
+                              Rời nhóm
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button 
+                              onClick={() => { handleViewProfile(); setShowOptionsMenu(false); }}
+                              className="w-full text-left px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[#00a2ff]/10 transition"
+                            >
+                              Xem hồ sơ
+                            </button>
+                            <button 
+                              onClick={() => { handleHideConversation(); setShowOptionsMenu(false); }}
+                              className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition border-t border-[var(--border)]"
+                            >
+                              Xóa cuộc trò chuyện
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Chat Messages */}
@@ -385,7 +501,10 @@ export default function GroupChat() {
               )}
 
               {messages.map((msg, idx) => {
-                const isMine = msg.senderId === (user._id || user.id);
+                const senderIdStr = typeof msg.senderId === 'object' && msg.senderId !== null 
+                  ? String(msg.senderId._id || msg.senderId.id) 
+                  : String(msg.senderId);
+                const isMine = senderIdStr === String(user._id || user.id);
                 let showTimestamp = false;
                 
                 if (idx === 0) {
@@ -427,9 +546,9 @@ export default function GroupChat() {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 max-w-[70%]">
                           {isMine && !msg.isDeleted && (
-                            <div className="flex items-center gap-1 transition-opacity opacity-0 group-hover:opacity-100">
+                            <div className="flex items-center gap-1 transition-opacity opacity-0 group-hover:opacity-100 shrink-0">
                               <button 
                                 onClick={() => {
                                   setEditingMessageId(msg._id);
@@ -448,8 +567,8 @@ export default function GroupChat() {
                             </div>
                           )}
                           <div 
-                            style={{ fontFamily: "'Cascadia Code', Consolas, 'Courier New', monospace" }}
-                            className={`max-w-[70%] px-4 py-2.5 rounded-2xl shadow-sm ${
+                            style={{ fontFamily: "'Cascadia Code', Consolas, 'Courier New', monospace", wordBreak: "break-word" }}
+                            className={`px-4 py-2.5 rounded-2xl shadow-sm ${
                               isMine 
                               ? "bg-gradient-to-br from-[#c32fec] to-[#6366f1] text-white rounded-br-sm" 
                               : "bg-[#252527] text-[var(--text-primary)] rounded-bl-sm border border-[var(--border)]"
@@ -468,7 +587,7 @@ export default function GroupChat() {
             </div>
 
             {/* Chat Input */}
-            <div className="p-4 bg-[var(--bg-primary)] border-t border-[var(--border)]">
+            <div className="p-4 bg-[#1E1E1E] border-t border-[var(--border)]">
               <form onSubmit={handleSendMessage} className="flex items-end gap-3">
                 <div className="flex-1 bg-[var(--bg-secondary)] border border-[var(--border)] rounded-2xl p-2 flex items-center gap-2 focus-within:border-[#00a2ff]/50 transition-colors relative">
                   <button 
@@ -548,6 +667,12 @@ export default function GroupChat() {
           });
           setActiveChat(newChat);
         }}
+      />
+      
+      <ChatSearchModal 
+        isOpen={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        activeChat={activeChat}
       />
     </div>
   );

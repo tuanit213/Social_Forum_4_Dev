@@ -35,6 +35,9 @@ const messageSchema = new mongoose.Schema(
 // Tối ưu hóa truy vấn tin nhắn (Lấy tin nhắn mới nhất của một cuộc trò chuyện)
 messageSchema.index({ conversationId: 1, createdAt: -1 });
 
+// Tối ưu hóa tìm kiếm văn bản (Full-text search)
+messageSchema.index({ content: "text" });
+
 const Message = mongoose.model("Message", messageSchema);
 
 export default Message;

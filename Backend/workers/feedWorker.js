@@ -1,4 +1,5 @@
 import { Worker } from 'bullmq';
+import mongoose from 'mongoose';
 import redisClient from '../config/redis.js';
 import Post from '../models/Post.js';
 import User from '../models/User.js';
@@ -25,10 +26,13 @@ const feedWorker = new Worker('feedQueue', async (job) => {
     // Lấy danh sách ID những người đang follow
     const followingIds = (targetUser.following || []).map(id => id.toString());
 
-    // 2. Lấy dữ liệu 7 ngày gần nhất để tối ưu RAM thay vì lấy toàn bộ DB
+    // Lấy dữ liệu 7 ngày gần nhất để tối ưu RAM thay vì lấy toàn bộ DB
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     
-    const recentInteractions = await Interaction.find({ createdAt: { $gte: sevenDaysAgo } }).lean();
+    // Sử dụng mongoose.trusted() để bypass sanitizeFilter toàn cục
+    const recentInteractions = await Interaction.find({ 
+      createdAt: mongoose.trusted({ $gte: sevenDaysAgo }) 
+    }).lean();
     
     // Lấy 500 bài viết mới nhất để chấm điểm
     const recentPosts = await Post.find().sort({ createdAt: -1 }).limit(500).lean();

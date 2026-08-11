@@ -155,6 +155,11 @@ io.on("connection", (socket) => {
       if (conversation) {
         conversation.lastMessage = newMessage._id;
         
+        // Khi có tin nhắn mới, bỏ ẩn cuộc hội thoại với tất cả mọi người
+        if (conversation.deletedBy && conversation.deletedBy.length > 0) {
+          conversation.deletedBy = [];
+        }
+        
         // Tăng unreadCount cho tất cả trừ người gửi
         conversation.participants.forEach(pId => {
           const pIdStr = pId.toString();

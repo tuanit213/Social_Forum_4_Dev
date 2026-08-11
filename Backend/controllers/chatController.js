@@ -1,6 +1,7 @@
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
 import xss from 'xss';
+import mongoose from 'mongoose';
 
 // @desc    Lấy danh sách các cuộc hội thoại của user hiện tại
 // @route   GET /api/chat/conversations
@@ -9,16 +10,20 @@ export const getConversations = async (req, res, next) => {
   try {
     const userId = req.user.userId;
 
-    // Lấy danh sách conversation có chứa userId (ở participants hoặc pendingMembers)
+    // Lấy danh sách conversation có chứa userId (ở participants hoặc pendingMembers) và chưa bị xóa bởi user
     const conversations = await Conversation.find({
       $or: [
         { participants: userId },
         { pendingMembers: userId }
-      ]
+      ],
+      deletedBy: mongoose.trusted({ $ne: userId })
     })
-      .populate("participants", "username displayName avatarUrl")
-      .populate("pendingMembers", "username displayName avatarUrl")
-      .populate("lastMessage")
+      .populate("participants", "Username displayName avatarUrl")
+      .populate("pendingMembers", "Username displayName avatarUrl")
+      .populate({
+        path: "lastMessage",
+        populate: { path: "senderId", select: "Username displayName avatarUrl" }
+      })
       .sort({ updatedAt: -1 });
 
     res.status(200).json({ success: true, conversations });
@@ -46,14 +51,14 @@ export const getOrCreateConversation = async (req, res, next) => {
         { participants: senderId },
         { participants: receiverId }
       ]
-    }).populate("participants", "username displayName avatarUrl");
+    }).populate("participants", "Username displayName avatarUrl");
 
     if (!conversation) {
       // Chưa có thì tạo mới
       conversation = await Conversation.create({
         participants: [senderId, receiverId],
       });
-      conversation = await conversation.populate("participants", "username displayName avatarUrl");
+      conversation = await conversation.populate("participants", "Username displayName avatarUrl");
     }
 
     res.status(200).json({ success: true, conversation });
@@ -89,7 +94,8 @@ export const getMessages = async (req, res, next) => {
     const messages = await Message.find({ conversationId })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .populate("senderId", "Username displayName avatarUrl");
 
     // Tính tổng số lượng để frontend biết khi nào hết
     const totalMessages = await Message.countDocuments({ conversationId });
@@ -98,6 +104,46 @@ export const getMessages = async (req, res, next) => {
     // Đảo ngược mảng để gửi cho frontend thứ tự từ cũ đến mới trong mảng (vì frontend thường map từ trên xuống)
     // Hoặc giữ nguyên và để frontend tự prepend. Ta sẽ gửi nguyên bản sort giảm dần.
     res.status(200).json({ success: true, messages: messages.reverse(), hasMore, totalMessages });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Tìm kiếm tin nhắn trong một cuộc hội thoại bằng Full-Text Search
+// @route   GET /api/chat/conversations/:conversationId/search?q=keyword
+// @access  Private
+export const searchMessages = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+    const { q } = req.query;
+    const userId = req.user.userId;
+
+    if (!q || !q.trim()) {
+      return res.status(400).json({ success: false, message: "Từ khóa tìm kiếm không được để trống" });
+    }
+
+    // Kiểm tra quyền (IDOR Check)
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy cuộc trò chuyện" });
+    }
+    
+    if (!conversation.participants.includes(userId)) {
+      return res.status(403).json({ success: false, message: "Bạn không có quyền đọc cuộc trò chuyện này" });
+    }
+
+    // Sử dụng Text Index của MongoDB để tìm kiếm nhanh
+    const messages = await Message.find({
+      conversationId,
+      $text: { $search: q },
+      isDeleted: false // Không tìm kiếm các tin nhắn đã bị thu hồi
+    })
+    .sort({ createdAt: -1 }) // Sắp xếp theo thời gian mới nhất (hoặc thay bằng { score: { $meta: "textScore" } } nếu muốn ưu tiên độ chính xác)
+    .limit(50); // Giới hạn 50 kết quả
+
+    // Trả về mảng messages. Có thể giữ nguyên thứ tự hoặc reverse() tùy logic Frontend
+    // Đảo ngược để giống cấu trúc mảng trả về của getMessages
+    res.status(200).json({ success: true, messages: messages.reverse() });
   } catch (error) {
     next(error);
   }
@@ -262,6 +308,72 @@ export const kickFromGroup = async (req, res, next) => {
     await group.save();
     
     res.status(200).json({ success: true, message: "Đã xóa thành viên khỏi nhóm" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Tự rời khỏi Group
+// @route   PUT /api/chat/groups/:id/leave
+// @access  Private
+export const leaveGroup = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    const group = await Conversation.findById(id);
+    if (!group || !group.isGroup) {
+      return res.status(404).json({ success: false, message: "Nhóm không tồn tại" });
+    }
+
+    if (!group.participants.includes(userId)) {
+      return res.status(400).json({ success: false, message: "Bạn không phải là thành viên của nhóm này" });
+    }
+
+    // Nếu là Admin rời nhóm
+    if (group.groupAdmin.toString() === userId) {
+      // Nếu nhóm còn người khác, chuyển quyền Admin cho người tiếp theo
+      const otherMembers = group.participants.filter(mId => mId.toString() !== userId);
+      if (otherMembers.length > 0) {
+        group.groupAdmin = otherMembers[0];
+      } else {
+        // Nhóm không còn ai -> Có thể xóa nhóm hoặc để trống (ở đây ta cứ xóa mảng participants)
+      }
+    }
+
+    group.participants = group.participants.filter(mId => mId.toString() !== userId);
+    await group.save();
+    
+    res.status(200).json({ success: true, message: "Đã rời nhóm thành công" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Ẩn đoạn chat 1-1 (Hide/Delete conversation from view)
+// @route   DELETE /api/chat/conversations/:id/hide
+// @access  Private
+export const hideConversation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy cuộc trò chuyện" });
+    }
+
+    if (!conversation.participants.includes(userId)) {
+      return res.status(403).json({ success: false, message: "Bạn không có quyền ẩn cuộc trò chuyện này" });
+    }
+
+    // Thêm vào mảng deletedBy nếu chưa có
+    if (!conversation.deletedBy.includes(userId)) {
+      conversation.deletedBy.push(userId);
+      await conversation.save();
+    }
+
+    res.status(200).json({ success: true, message: "Đã ẩn đoạn chat thành công" });
   } catch (error) {
     next(error);
   }

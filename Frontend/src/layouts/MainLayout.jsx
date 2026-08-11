@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
 import LeftSidebar from "@/components/layout/LeftSidebar";
 import RightSidebar from "@/components/layout/RightSidebar";
@@ -8,7 +8,10 @@ import { SocketProvider } from "@/contexts/SocketContext";
 
 export default function MainLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
+
+  const isChatPage = location.pathname.startsWith("/group-chat");
 
   useEffect(() => {
     let cancelled = false;
@@ -50,11 +53,11 @@ export default function MainLayout() {
         <div className="relative z-10 max-w-[1400px] mx-auto w-full pt-16 flex justify-center">
           <LeftSidebar />
 
-          <main className="flex-1 w-full max-w-2xl min-w-0 border-x border-[var(--border)] min-h-[calc(100vh-64px)]">
+          <main className={`flex-1 w-full min-w-0 border-x border-[var(--border)] min-h-[calc(100vh-64px)] ${isChatPage ? '' : 'max-w-2xl'}`}>
             <Outlet context={{ user }} />
           </main>
 
-          <RightSidebar user={user} />
+          {!isChatPage && <RightSidebar user={user} />}
         </div>
       </div>
     </SocketProvider>

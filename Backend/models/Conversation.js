@@ -36,6 +36,13 @@ const conversationSchema = new mongoose.Schema(
       of: Number,
       default: {},
     },
+    // Lưu danh sách userId của những người đã chọn "Ẩn/Xóa" cuộc trò chuyện này (phía họ)
+    deletedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      }
+    ],
   },
   { timestamps: true }
 );
