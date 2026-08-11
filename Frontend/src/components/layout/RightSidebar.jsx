@@ -5,7 +5,6 @@ import { clearAuthState, signOut } from "@/services/authService";
 
 import UserProfileWidget from "@/components/widgets/UserProfileWidget";
 import SuggestedConnectionsWidget from "@/components/widgets/SuggestedConnectionsWidget";
-import DailyQuestsWidget from "@/components/widgets/DailyQuestsWidget";
 
 export default function RightSidebar({ user }) {
   const navigate = useNavigate();
@@ -41,7 +40,6 @@ export default function RightSidebar({ user }) {
       </button>
 
       <SuggestedConnectionsWidget />
-      <DailyQuestsWidget />
     </aside>
   );
 }

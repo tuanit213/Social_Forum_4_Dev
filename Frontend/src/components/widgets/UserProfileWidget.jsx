@@ -1,10 +1,33 @@
+import { useEffect, useState } from "react";
 import { User, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import api from "@/services/authService";
 
 export default function UserProfileWidget({ user }) {
   const navigate = useNavigate();
-  const postCount = Number(user?.postCount ?? user?.postsCount ?? user?.posts ?? 0) || 0;
-  const followerCount = Number(user?.followerCount ?? user?.followersCount ?? user?.followers ?? 0) || 0;
+  const [stats, setStats] = useState({ postCount: 0, followerCount: 0 });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (user?.username) {
+        try {
+          const res = await api.get(`/users/profile/${user.username}`);
+          if (res.data.success) {
+            setStats({
+              postCount: res.data.data.stats?.postCount || 0,
+              followerCount: res.data.data.followInfo?.followersCount || 0
+            });
+          }
+        } catch (error) {
+          console.error("Lỗi lấy thông tin user widget:", error);
+        }
+      }
+    };
+    fetchStats();
+  }, [user?.username]);
+
+  const postCount = stats.postCount;
+  const followerCount = stats.followerCount;
   const displayName = user?.displayName || user?.username || "Chưa cập nhật";
   const username = user?.username ? `@${user.username}` : "@chua-cap-nhat";
 
