@@ -110,26 +110,27 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
 
-            {/* Username */}
+            {/* Email */}
             <div className="space-y-1.5">
-              <Label htmlFor="username" className="text-white/50 text-[11px] uppercase tracking-[0.2em] font-semibold">
-                Tên đăng nhập
+              <Label htmlFor="email" className="text-white/50 text-[11px] uppercase tracking-[0.2em] font-semibold">
+                Địa chỉ email
               </Label>
               <Input
-                id="username"
-                autoComplete="username"
-                placeholder="Nhập tên đăng nhập"
-                value={formData.username}
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="Nhập địa chỉ email"
+                value={formData.email}
                 onChange={handleChange}
                 disabled={isSubmitting}
-                aria-invalid={!!errors.username}
+                aria-invalid={!!errors.email}
                 className="h-12 rounded-xl text-white text-sm placeholder:text-white/20 focus-visible:ring-violet-500/50 focus-visible:border-violet-500/40 disabled:opacity-50"
                 style={{
-                  background: errors.username ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.06)",
-                  border: errors.username ? "1px solid rgba(239,68,68,0.4)" : "1px solid rgba(255,255,255,0.10)",
+                  background: errors.email ? "rgba(239,68,68,0.08)" : "rgba(255,255,255,0.06)",
+                  border: errors.email ? "1px solid rgba(239,68,68,0.4)" : "1px solid rgba(255,255,255,0.10)",
                 }}
               />
-              <FieldError message={errors.username} />
+              <FieldError message={errors.email} />
             </div>
 
             {/* Password */}

@@ -87,11 +87,11 @@ export const validateName = (value, fieldLabel = "Trường này") => {
  * Validate toàn bộ form đăng nhập.
  * @returns {{ isValid: boolean, errors: Record<string, string> }}
  */
-export const validateLoginForm = ({ username, password }) => {
+export const validateLoginForm = ({ email, password }) => {
   const errors = {};
 
-  const usernameError = validateUsername(username);
-  if (usernameError) errors.username = usernameError;
+  const emailError = validateEmail(email);
+  if (emailError) errors.email = emailError;
 
   const passwordError = validatePassword(password);
   if (passwordError) errors.password = passwordError;

@@ -36,7 +36,12 @@ export const signUpSchema = z
 
 export const signInSchema = z
   .object({
-    username: usernameSchema,
+    email: z
+      .string({ error: "Email bat buoc la chuoi" })
+      .trim()
+      .email("Email khong dung dinh dang")
+      .max(254, "Email toi da 254 ky tu")
+      .transform((value) => value.toLowerCase()),
     password: z
       .string({ error: "Password bat buoc la chuoi" })
       .min(1, "Password khong duoc de trong")

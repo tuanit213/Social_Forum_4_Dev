@@ -10,12 +10,12 @@ import { validateLoginForm, sanitizeInput } from "@/utils/validators";
 import { signIn } from "@/services/authService";
 
 const INITIAL_FORM = {
-  username: "",
+  email: "",
   password: "",
 };
 
 const INITIAL_ERRORS = {
-  username: "",
+  email: "",
   password: "",
 };
 
@@ -63,7 +63,7 @@ export function useLoginForm() {
     setIsSubmitting(true);
     try {
       const data = await signIn({
-        username: formData.username,
+        email: formData.email,
         password: formData.password,
       });
       // 3. Thành công → điều hướng đến trang chính

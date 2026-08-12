@@ -8,7 +8,7 @@ import {
 } from "../utils/securityConfig.js";
 
 const SYSTEM_ERROR = "Lỗi hệ thống";
-const INVALID_CREDENTIALS = "Username hoặc password không chính xác";
+const INVALID_CREDENTIALS = "Email hoặc mật khẩu không chính xác";
 const BLOCKED_STATUSES = ["banned", "suspended"];
 
 const blockedAccountMessage = (status) =>
@@ -70,9 +70,9 @@ export const signUp = async (req, res) => {
 
 export const signIn = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    const user = await User.findOne({ Username: username });
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: INVALID_CREDENTIALS });
     }

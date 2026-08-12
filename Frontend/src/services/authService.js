@@ -119,8 +119,8 @@ export const refreshAuthToken = async () => {
   return data;
 };
 
-export const signIn = async ({ username, password }) => {
-  const { data } = await api.post("/auth/signin", { username, password });
+export const signIn = async ({ email, password }) => {
+  const { data } = await api.post("/auth/signin", { email, password });
   saveAuthState(data);
   return data;
 };
