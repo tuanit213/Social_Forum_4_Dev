@@ -13,6 +13,7 @@ import commentRoutes from "./routes/commentRoute.js";
 import chatRoutes from "./routes/chatRoute.js";
 import sampleRoutes from "./routes/sampleRoutes.js";
 import adminRoutes from "./routes/adminRoute.js";
+import searchRoutes from "./routes/searchRoute.js";
 import { getAllowedOrigins } from "./utils/securityConfig.js";
 import { Server } from "socket.io";
 import http from "http";
@@ -87,6 +88,7 @@ app.use("/api/comments", requireDBConnection, commentRoutes);
 app.use("/api/users", requireDBConnection, userRoutes);
 app.use("/api/chat", requireDBConnection, chatRoutes);
 app.use("/api/admin", requireDBConnection, adminRoutes);
+app.use("/api/search", requireDBConnection, searchRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

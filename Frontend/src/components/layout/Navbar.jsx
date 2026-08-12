@@ -1,9 +1,18 @@
 import { Bell, MessageSquare, Search, User as UserIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 export default function Navbar({ user }) {
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (e) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery(""); // Optional: clear after search or keep it
+    }
+  };
 
   return (
     <nav className="fixed top-0 w-full h-16 z-50 flex items-center justify-between px-6 border-b border-[var(--border)] bg-[var(--bg-primary)] transition-colors duration-200">
@@ -23,6 +32,9 @@ export default function Navbar({ user }) {
             className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] transition-colors"
           />
           <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearch}
             placeholder="Tim kiem bai viet, nguoi dung, chu de..."
             className="w-full bg-[var(--bg-secondary)] border-[var(--border)] h-10 pl-10 pr-4 rounded-full text-sm text-[var(--text-primary)] focus-visible:ring-1 focus-visible:ring-[var(--accent)] focus-visible:border-[var(--accent)] transition-all placeholder:text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]"
           />

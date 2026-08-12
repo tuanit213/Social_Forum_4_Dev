@@ -67,5 +67,15 @@ const postSchema = new mongoose.Schema({
   timestamps: true 
 });
 
+// Thêm Text Index phục vụ cho Search toàn cục
+postSchema.index({ title: 'text', content: 'text', tags: 'text' }, {
+  weights: {
+    title: 10,
+    tags: 5,
+    content: 1
+  },
+  name: "PostTextIndex"
+});
+
 const Post = mongoose.model('Post', postSchema);
 export default Post;

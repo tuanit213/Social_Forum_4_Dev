@@ -8,6 +8,7 @@ import TrendingGithub from "./pages/TrendingGithub";
 import Settings from "./pages/Settings";
 import ProfileDashboard from "./pages/ProfileDashboard";
 import UserProfile from "./pages/UserProfile";
+import SearchPage from "./pages/SearchPage";
 import MainLayout from "./layouts/MainLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminOverview from "./pages/admin/AdminOverview";
@@ -32,6 +33,7 @@ function App() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/dashboard" element={<ProfileDashboard />} />
             <Route path="/profile/:username" element={<UserProfile />} />
+            <Route path="/search" element={<SearchPage />} />
           </Route>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
