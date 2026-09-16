@@ -35,10 +35,10 @@ export const createPost = async (req, res) => {
     
     // Đẩy Job để update feed cho những người theo dõi User này
     const author = await User.findById(userId).select('followers').lean();
-    if (author && author.followers) {
-        author.followers.forEach(followerId => {
-            addJobToFeedQueue('update-feed-follower', { userId: followerId.toString() });
-        });
+    if (author?.followers?.length) {
+      await Promise.allSettled(author.followers.map((followerId) =>
+        addJobToFeedQueue('update-feed-follower', { userId: followerId.toString() })
+      ));
     }
 
     res.status(201).json({
@@ -48,7 +48,7 @@ export const createPost = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi khi tạo bài viết:", error);
-    res.status(500).json({ success: false, message: "Lỗi Server", error: error.message });
+    res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 };
 
@@ -127,7 +127,7 @@ export const getPosts = async (req, res) => {
 
     // 2. Fallback: Nếu Redis trống (User mới vào), trả về bài viết mới nhất
     // Đồng thời kích hoạt Worker chạy ngầm để tính toán Feed cho User này
-    addJobToFeedQueue('build-feed-initial', { userId });
+    await addJobToFeedQueue('build-feed-initial', { userId });
 
     const posts = await Post.find({ status: 'public' })
       .populate('userId', 'Username displayName avatarUrl')
@@ -146,7 +146,7 @@ export const getPosts = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi khi lấy danh sách bài viết:", error);
-    res.status(500).json({ success: false, message: "Lỗi Server", error: error.message });
+    res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 };
 
@@ -190,7 +190,7 @@ export const updatePost = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi khi cập nhật bài viết:", error);
-    res.status(500).json({ success: false, message: "Lỗi Server", error: error.message });
+    res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 };
 
@@ -217,7 +217,7 @@ export const deletePost = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi khi xóa bài viết:", error);
-    res.status(500).json({ success: false, message: "Lỗi Server", error: error.message });
+    res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 };
 
@@ -237,7 +237,7 @@ export const reactPost = async (req, res) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
     }
 
-    const oldReaction = post.reactions.find(r => r.users.includes(userId));
+    const oldReaction = post.reactions.find(r => r.users.some((id) => id.toString() === userId.toString()));
     const oldEmoji = oldReaction ? oldReaction.emoji : null;
 
     post.reactions.forEach(r => {
@@ -269,7 +269,7 @@ export const reactPost = async (req, res) => {
         });
         
         // Kích hoạt tính lại Feed vì Sở thích của User vừa thay đổi
-        addJobToFeedQueue('update-feed-after-interaction', { userId });
+        await addJobToFeedQueue('update-feed-after-interaction', { userId });
     }
 
     res.status(200).json({
@@ -279,6 +279,6 @@ export const reactPost = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi khi react bài viết:", error);
-    res.status(500).json({ success: false, message: "Lỗi Server", error: error.message });
+    res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 };

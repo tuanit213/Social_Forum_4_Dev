@@ -46,5 +46,8 @@
     "oxlint": "^1.71.0",
     "postcss": "^8.5.23",
     "vite": "^8.1.1"
+  },
+  "overrides": {
+    "dompurify": "3.4.15"
   }
 }
