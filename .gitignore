@@ -3,6 +3,7 @@
 !.env.example
 
 node_modules/
+algorithm-sandbox/node_modules/
 dist/
 build/
 
