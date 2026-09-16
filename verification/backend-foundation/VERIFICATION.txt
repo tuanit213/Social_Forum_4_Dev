@@ -21,3 +21,8 @@ ROLLBACK
 - command: ROLLBACK.sh MODIFIED_FILE.copy
   input: MODIFIED_FILE.copy
   result: restores pristine sibling bytes; status 0
+
+FRESH CLONE
+- command: git clone --branch codex/backend-foundation --single-branch https://github.com/tuanit213/Social_Forum_4_Dev.git; Backend npm ci/syntax/test/audit; Frontend npm ci/lint/build/audit
+  input: commit f5dc05d261bfeca8d601474dd320655967d325e5, no node_modules, no .env, no prior cache
+  result: backend 10 tests passed, frontend build passed, both production audits found 0 vulnerabilities; exit 0
