@@ -26,3 +26,33 @@ FRESH CLONE
 - command: git clone --branch codex/backend-foundation --single-branch https://github.com/tuanit213/Social_Forum_4_Dev.git; Backend npm ci/syntax/test/audit; Frontend npm ci/lint/build/audit
   input: commit f5dc05d261bfeca8d601474dd320655967d325e5, no node_modules, no .env, no prior cache
   result: backend 10 tests passed, frontend build passed, both production audits found 0 vulnerabilities; exit 0
+
+REAL RUNTIME ACCEPTANCE
+- command: backend start with process-only JWT secret and DNS resolver override
+  input: ignored Backend/.env with Atlas URI; Redis on 127.0.0.1:6379
+  result: Atlas connected, Redis connected, HTTP server listening; exit 0
+- command: GET /health/live and GET /health/ready
+  input: backend real runtime
+  result: live HTTP 200 status ok; ready HTTP 200 status ready; mongo.ready=true; redis.ready=true; bullmq.queue=true; bullmq.worker=true; exit 0
+- command: real smoke script
+  input: unique test users; Atlas database; persistent Redis; backend and frontend running concurrently
+  result: register, login, refresh, signout, profile, follow, unfollow, post, feed, reaction, comment, search, Socket.IO connect, direct chat send/read all passed; exit 0
+- command: BullMQ queue add and waitUntilFinished
+  input: real Atlas user id and persistent Redis
+  result: feed job id 4 reached completed; queue=true; worker=true; exit 0
+- command: Redis ping, write marker, restart, read marker
+  input: Redis AOF with appendfsync always
+  result: PONG before and after restart; persisted marker restored; exit 0
+
+FINAL INSTALL, BUILD, TEST, AUDIT
+- command: cd Backend; npm ci; npm run syntax; node --check for all backend JavaScript; npm test; npm audit
+  input: branch codex/backend-foundation
+  result: install passed; 40 syntax files passed; 10 tests passed, 0 failed; 0 vulnerabilities; exit 0
+- command: cd Frontend; npm ci; npm run lint; NODE_OPTIONS=--max-old-space-size=4096 npm run build; npm audit
+  input: branch codex/backend-foundation
+  result: install passed; lint passed with warnings; build passed; 0 vulnerabilities; exit 0
+
+REPOSITORY SAFETY
+- command: git check-ignore Backend/.env; git ls-files Backend/.env; git ls-files node_modules paths
+  input: current worktree and Git index
+  result: Backend/.env exists and is ignored; tracked env count 0; tracked node_modules count 0; exit 0

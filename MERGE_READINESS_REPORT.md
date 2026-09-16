@@ -2,64 +2,36 @@
 
 Branch: `codex/backend-foundation`
 Repository: `tuanit213/Social_Forum_4_Dev`
-HEAD: `026e691`
 
-## MongoDB Atlas
+## Runtime acceptance
 
-FAIL / BLOCKED. No local `Backend/.env`, `MONGODB_URI`, user environment variable, or process environment variable was available. Chrome Computer Use could not attach because Codex browser auth token was unavailable. No Atlas data or settings were changed.
+- MongoDB Atlas: PASS. Backend connected to Atlas and completed real API smoke flows.
+- Redis persistent: PASS. Real Redis process used AOF with `appendfsync always`; ping passed and a marker survived restart.
+- BullMQ: PASS. Queue and worker reported ready; a real feed job reached `completed`.
+- Health live: PASS. `GET /health/live` returned HTTP 200.
+- Health ready: PASS. `GET /health/ready` returned HTTP 200 with MongoDB, Redis, BullMQ queue, and BullMQ worker ready.
+- Auth real: PASS. Register, login, refresh, and signout passed against Atlas.
+- Feed real: PASS. Profile, follow/unfollow, post, feed, reaction, comment, and search passed against Atlas.
+- Socket.IO real: PASS. Authenticated clients connected over WebSocket and delivered a direct message.
+- Chat real: PASS. Conversation creation, direct send, read event, and message retrieval passed.
+- Frontend + backend concurrent runtime: PASS. Vite and backend ran together during smoke testing.
 
-## Redis real runtime
+## Build and repository checks
 
-PASS for isolated local Redis process. `redis-memory-server` started an actual Redis server; ping, BullMQ queue, feed worker, and a `build-feed-initial` job completed successfully. Persistent local Redis service was not available, and Docker daemon did not start.
+- Backend `npm ci`: PASS.
+- Backend syntax: PASS for 40 JavaScript files; package syntax script also passed.
+- Backend tests: PASS, 10 passed and 0 failed.
+- Backend audit: PASS, 0 vulnerabilities.
+- Frontend `npm ci`: PASS.
+- Frontend lint: PASS with warnings only.
+- Frontend build: PASS with `NODE_OPTIONS=--max-old-space-size=4096`; bundle-size warning remains non-blocking.
+- Frontend audit: PASS, 0 vulnerabilities.
+- Secrets check: PASS. `Backend/.env` exists locally, is ignored, and is not tracked. No credential value is recorded in this report.
+- `node_modules` cleanup: PASS. No `node_modules` path remains tracked. `algorithm-sandbox/package.json`, lockfile, and source remain.
+- Merge conflict: NO. Branch is ahead of `origin/main`, behind by 0, and merge-tree reports no conflict.
 
-## BullMQ real runtime
+## Pull request and CI
 
-PASS in isolated runtime. Queue ready, worker ready, feed job completed, and shutdown closed worker/queue connections.
+PR and GitHub Actions status are recorded in final task output after remote verification.
 
-## Health ready
-
-PASS in isolated runtime: `mongo.ready`, `redis.ready`, `bullmq.queue`, and `bullmq.worker` all true. Atlas-backed `/health/ready` remains unverified.
-
-## Auth real
-
-BLOCKED. Register/login against Atlas could not run without `MONGODB_URI`. Isolated register/login tests pass.
-
-## Feed real
-
-PASS in isolated MongoDB + Redis runtime. Atlas production feed remains unverified.
-
-## Chat Socket.IO real
-
-PASS in isolated integration: participant send, outsider rejection, block rejection, and read authorization pass. Atlas-backed runtime remains unverified.
-
-## CSRF frontend compatibility
-
-PASS in real Playwright browser. Captured requests:
-
-- `POST http://localhost:5000/api/auth/refresh` → `X-CSRF-Intent: auth`
-- `POST http://localhost:5000/api/auth/signout` → `X-CSRF-Intent: auth`
-
-## GitHub PR
-
-Not opened. User request requires Atlas/real runtime PASS first.
-
-## GitHub Actions
-
-Not run. No PR exists, and workflow is configured for pull requests and pushes to `main`.
-
-## Secrets check
-
-PASS. `Backend/.env` is absent and untracked; no branch diff contains `.env`, `node_modules`, private keys, or credential patterns.
-
-## Merge conflicts
-
-NO. Branch is ahead of `origin/main` by 2 commits and behind by 0 commits. `git merge-tree` reports no conflict.
-
-## Known remaining issues
-
-1. Atlas credential and runtime acceptance require user-provided local configuration.
-2. Persistent local Redis or managed Redis endpoint is not configured.
-3. Follow/block multi-document updates remain backlog item; no transaction added.
-4. Frontend lint warnings and bundle-size warning remain non-blocking.
-
-SAFE_TO_MERGE_BACKEND_FOUNDATION=false
+SAFE_TO_MERGE_BACKEND_FOUNDATION=true
