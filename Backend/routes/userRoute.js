@@ -8,6 +8,7 @@ import {
 } from "../controllers/userController.js";
 import { verifyToken } from "../middlewares/authMiddleware.js";
 import { validateDashboardProfile } from "../middlewares/validateUserRequest.js";
+import { validateObjectId } from "../middlewares/validateResource.js";
 
 const router = express.Router();
 
@@ -20,6 +21,6 @@ router.put("/profile/:username/follow", verifyToken, toggleFollowUser);
 
 import { getAllUsers, toggleBlockUser } from "../controllers/userController.js";
 router.get("/", verifyToken, getAllUsers);
-router.put("/:id/block", verifyToken, toggleBlockUser);
+router.put("/:id/block", verifyToken, validateObjectId("id"), toggleBlockUser);
 
 export default router;

@@ -7,6 +7,11 @@ mongoose.set("strictQuery", true);
 
 export const isDBConnected = () => mongoose.connection.readyState === 1;
 
+export const getDBHealth = () => ({
+  ready: isDBConnected(),
+  state: mongoose.connection.readyState,
+});
+
 export const requireDBConnection = (req, res, next) => {
   if (!isDBConnected()) {
     return res.status(503).json({
@@ -17,15 +22,13 @@ export const requireDBConnection = (req, res, next) => {
   next();
 };
 
-const connectDB = async () => {
-  const uri = process.env.MONGODB_URI;
+const connectDB = async ({ uri = process.env.MONGODB_URI } = {}) => {
   const dnsServers = process.env.DNS_SERVERS?.split(",")
     .map((server) => server.trim())
     .filter(Boolean);
 
   if (!uri) {
-    console.warn("Cảnh báo: MONGODB_URI đang trống. API cần database sẽ không lưu được dữ liệu.");
-    return false;
+    throw new Error("MONGODB_URI is required");
   }
 
   if (dnsServers?.length) {
@@ -37,11 +40,16 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 5000,
     });
 
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`MongoDB connected: ${conn.connection.host}`);
     return true;
   } catch (error) {
-    console.error(`Lỗi kết nối MongoDB: ${error.message}`);
-    return false;
+    throw new Error(`MongoDB connection failed: ${error.message}`, { cause: error });
+  }
+};
+
+export const disconnectDB = async () => {
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
   }
 };
 

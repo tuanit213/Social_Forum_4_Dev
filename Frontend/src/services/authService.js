@@ -45,6 +45,8 @@ const api = axios.create({
   },
 });
 
+const authIntentConfig = { headers: { "X-CSRF-Intent": "auth" } };
+
 api.interceptors.request.use(
   (config) => {
     if (accessToken) {
@@ -85,7 +87,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const { data } = await api.post("/auth/refresh");
+        const { data } = await api.post("/auth/refresh", undefined, authIntentConfig);
         saveAuthState(data);
 
         if (data.accessToken) {
@@ -114,7 +116,7 @@ api.interceptors.response.use(
 );
 
 export const refreshAuthToken = async () => {
-  const { data } = await api.post("/auth/refresh");
+  const { data } = await api.post("/auth/refresh", undefined, authIntentConfig);
   saveAuthState(data);
   return data;
 };
@@ -139,7 +141,7 @@ export const signUp = async ({ firstName, lastName, username, email, password })
 
 export const signOut = async () => {
   try {
-    await api.post("/auth/signout");
+    await api.post("/auth/signout", undefined, authIntentConfig);
   } catch (error) {
     console.error("Signout API error", error);
   } finally {

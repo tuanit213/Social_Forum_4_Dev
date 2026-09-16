@@ -1,4 +1,5 @@
 import Comment from '../models/Comment.js';
+import Post from '../models/Post.js';
 import xss from 'xss';
 
 // Tạo bình luận mới
@@ -13,6 +14,17 @@ export const createComment = async (req, res) => {
 
     const safeContent = xss(content.trim());
 
+    const post = await Post.findById(postId).select("_id").lean();
+    if (!post) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy bài viết" });
+    }
+    if (parentCommentId) {
+      const parent = await Comment.findOne({ _id: parentCommentId, postId }).select("_id").lean();
+      if (!parent) {
+        return res.status(400).json({ success: false, message: "Bình luận cha không hợp lệ" });
+      }
+    }
+
     const newComment = new Comment({
       content: safeContent,
       userId,
@@ -23,9 +35,7 @@ export const createComment = async (req, res) => {
     const savedComment = await newComment.save();
     
     // Tăng commentsCount của Post
-    await import('../models/Post.js').then(module => {
-      module.default.findByIdAndUpdate(postId, { $inc: { commentsCount: 1 } }).exec();
-    });
+    await Post.findByIdAndUpdate(postId, { $inc: { commentsCount: 1 } });
 
     // Populate thông tin user để trả về ngay
     await savedComment.populate('userId', 'Username displayName avatarUrl');
@@ -37,7 +47,7 @@ export const createComment = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi khi tạo bình luận:", error);
-    res.status(500).json({ success: false, message: "Lỗi Server", error: error.message });
+    res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 };
 
@@ -57,7 +67,7 @@ export const getCommentsByPostId = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi khi lấy bình luận:", error);
-    res.status(500).json({ success: false, message: "Lỗi Server", error: error.message });
+    res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 };
 
@@ -122,9 +132,7 @@ export const deleteComment = async (req, res) => {
 
     // Giảm commentsCount của Post (giảm 1 gốc + số lượng con)
     const totalDeleted = 1 + childIds.length;
-    await import('../models/Post.js').then(module => {
-      module.default.findByIdAndUpdate(comment.postId, { $inc: { commentsCount: -totalDeleted } }).exec();
-    });
+    await Post.findByIdAndUpdate(comment.postId, { $inc: { commentsCount: -totalDeleted } });
 
     res.status(200).json({
       success: true,
@@ -153,7 +161,7 @@ export const reactComment = async (req, res) => {
     }
 
     // 1. Lưu lại emoji cũ mà user đã thả (nếu có)
-    const oldReaction = comment.reactions.find(r => r.users.includes(userId));
+    const oldReaction = comment.reactions.find(r => r.users.some((id) => id.toString() === userId.toString()));
     const oldEmoji = oldReaction ? oldReaction.emoji : null;
 
     // 2. Xóa user khỏi tất cả các reaction hiện tại (đảm bảo chỉ có 1 emoji duy nhất)
@@ -186,6 +194,6 @@ export const reactComment = async (req, res) => {
     });
   } catch (error) {
     console.error("Lỗi khi react bình luận:", error);
-    res.status(500).json({ success: false, message: "Lỗi Server", error: error.message });
+    res.status(500).json({ success: false, message: "Lỗi Server" });
   }
 };

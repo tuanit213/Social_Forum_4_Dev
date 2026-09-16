@@ -1,0 +1,23 @@
+BACKEND FOUNDATION VERIFICATION
+
+BASELINE: branch codex/backend-foundation before final hardening edits.
+MODIFIED: backend startup shutdown order, ObjectId-safe follow/block/reaction checks, bounded search input, RegExp-safe user search, frontend dompurify override.
+
+TESTS
+- command: cd Backend; npm test
+  input: isolated mongodb-memory-server and redis-memory-server
+  result: 10 tests passed, 0 failed; exit 0
+- command: cd Backend; npm run syntax
+  input: server.js and app.js
+  result: syntax passed; exit 0
+- command: cd Backend; npm audit --omit=dev --json
+  input: installed lockfile
+  result: 0 vulnerabilities; exit 0
+- command: cd Frontend; npm ci; npm run lint; npm run build; npm audit --omit=dev --json
+  input: clean dependency install
+  result: install/build passed, lint warnings only, 0 vulnerabilities; exit 0
+
+ROLLBACK
+- command: ROLLBACK.sh MODIFIED_FILE.copy
+  input: MODIFIED_FILE.copy
+  result: restores pristine sibling bytes; status 0

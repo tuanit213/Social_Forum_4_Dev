@@ -18,6 +18,8 @@ const emptyProfileDashboard = {
   topContribution: "",
 };
 
+const idsMatch = (left, right) => left?.toString() === right?.toString();
+
 const buildDashboardResponse = (user) => ({
   user: {
     id: user._id,
@@ -167,7 +169,7 @@ export const getUserProfile = async (req, res) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
     }
 
-    const isFollowing = user.followers.includes(currentUserId);
+    const isFollowing = user.followers.some((id) => idsMatch(id, currentUserId));
     const followersCount = user.followers.length;
     const followingCount = user.following.length;
 
@@ -199,7 +201,7 @@ export const toggleFollowUser = async (req, res) => {
       return res.status(400).json({ success: false, message: "Không thể tự theo dõi chính mình" });
     }
 
-    const isFollowing = targetUser.followers.includes(currentUserId);
+    const isFollowing = targetUser.followers.some((id) => idsMatch(id, currentUserId));
     
     if (isFollowing) {
       // Unfollow
@@ -236,7 +238,7 @@ export const toggleBlockUser = async (req, res) => {
     }
 
     const currentUser = await User.findById(currentUserId);
-    const isBlocked = currentUser.blockedUsers?.includes(targetUserId);
+    const isBlocked = currentUser.blockedUsers?.some((id) => idsMatch(id, targetUserId));
     
     if (isBlocked) {
       // Unblock

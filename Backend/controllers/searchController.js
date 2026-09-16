@@ -1,16 +1,22 @@
 import Post from "../models/Post.js";
 import User from "../models/User.js";
 
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 export const globalSearch = async (req, res) => {
   try {
-    const { q = "", type = "all", page = 1, limit = 20 } = req.query;
-    
-    if (!q.trim()) {
+    const q = typeof req.query.q === "string" ? req.query.q.trim().slice(0, 200) : "";
+    const type = ["all", "post", "user"].includes(req.query.type) ? req.query.type : "all";
+    const pageValue = Number.parseInt(req.query.page, 10);
+    const limitValue = Number.parseInt(req.query.limit, 10);
+    const page = Number.isFinite(pageValue) ? Math.max(pageValue, 1) : 1;
+    const limitNum = Number.isFinite(limitValue) ? Math.min(Math.max(limitValue, 1), 50) : 20;
+
+    if (!q) {
       return res.status(200).json({ success: true, data: { posts: [], users: [] } });
     }
 
-    const skip = (Math.max(parseInt(page), 1) - 1) * parseInt(limit);
-    const limitNum = parseInt(limit);
+    const skip = (page - 1) * limitNum;
 
     let postsPromise = Promise.resolve([]);
     let usersPromise = Promise.resolve([]);
@@ -30,10 +36,11 @@ export const globalSearch = async (req, res) => {
 
     // Tìm kiếm người dùng (dùng Regex trên Username và displayName)
     if (type === "all" || type === "user") {
+      const userSearch = new RegExp(escapeRegExp(q), "i");
       usersPromise = User.find({
         $or: [
-          { Username: { $regex: q, $options: "i" } },
-          { displayName: { $regex: q, $options: "i" } }
+          { Username: userSearch },
+          { displayName: userSearch }
         ]
       })
         .skip(skip)
