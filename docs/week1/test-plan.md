@@ -38,4 +38,4 @@
 | T09 | Responsive shell and mobile navigation | PASS |
 | T10 | Session isolation and unauthorized mutations | PASS |
 | T11 | Feed, Search, Socket.IO, and Chat regression | PASS |
-| T12 | Docs, syntax, tests, lint, build, PR, and CI | IN PROGRESS until PR CI completes |
+| T12 | Docs, syntax, tests, lint, build, PR, and CI | PASS on PR #2 CI run 37205886587 |

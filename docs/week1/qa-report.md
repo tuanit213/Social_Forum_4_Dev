@@ -4,6 +4,9 @@
 
 The Week 1 implementation is ready for review on branch `codex/week1-completion`. No merge was performed.
 
+Pull request: `https://github.com/tuanit213/Social_Forum_4_Dev/pull/2`.
+CI run: `https://github.com/tuanit213/Social_Forum_4_Dev/actions/runs/37205886587`, conclusion `success` on commit `3041cddd3954538c4ab54e5bd0343a814ae322e4`.
+
 ## Automated checks
 
 | Check | Result |
