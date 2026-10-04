@@ -13,8 +13,11 @@ const errorHandler = (err, req, res, next) => {
     console.error("server error", err.name, err.message);
   }
 
+  const requestId = req.get("X-Request-Id") || undefined;
   res.status(statusCode).json({
+    success: false,
     message,
+    ...(requestId ? { requestId } : {}),
     ...(isProduction ? {} : { stack: err.stack }),
   });
 };

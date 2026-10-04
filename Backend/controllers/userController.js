@@ -18,6 +18,8 @@ const emptyProfileDashboard = {
   topContribution: "",
 };
 
+const idsMatch = (left, right) => left?.toString() === right?.toString();
+
 const buildDashboardResponse = (user) => ({
   user: {
     id: user._id,
@@ -157,6 +159,62 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
+const parsePage = (value) => {
+  const page = Number.parseInt(value, 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
+};
+
+const parseLimit = (value) => {
+  const limit = Number.parseInt(value, 10);
+  return Number.isFinite(limit) && limit > 0 ? Math.min(limit, 50) : 20;
+};
+
+const buildConnectionPage = async ({ userId, field, page, limit }) => {
+  const user = await User.findById(userId).select(field).populate(field, "Username displayName avatarUrl").lean();
+  if (!user) return null;
+
+  const records = Array.isArray(user[field]) ? user[field] : [];
+  const total = records.length;
+  const start = (page - 1) * limit;
+  return {
+    users: records.slice(start, start + limit),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasNextPage: start + limit < total,
+      hasPreviousPage: page > 1 && start < total,
+    },
+  };
+};
+
+export const getFollowers = async (req, res) => {
+  try {
+    const page = parsePage(req.query.page);
+    const limit = parseLimit(req.query.limit);
+    const result = await buildConnectionPage({ userId: req.user.userId, field: "followers", page, limit });
+    if (!result) return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+    return res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    console.error("getFollowers error", error.name, error.message);
+    return res.status(500).json({ success: false, message: "Lỗi hệ thống" });
+  }
+};
+
+export const getFollowing = async (req, res) => {
+  try {
+    const page = parsePage(req.query.page);
+    const limit = parseLimit(req.query.limit);
+    const result = await buildConnectionPage({ userId: req.user.userId, field: "following", page, limit });
+    if (!result) return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+    return res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    console.error("getFollowing error", error.name, error.message);
+    return res.status(500).json({ success: false, message: "Lỗi hệ thống" });
+  }
+};
+
 export const getUserProfile = async (req, res) => {
   try {
     const { username } = req.params;
@@ -167,7 +225,7 @@ export const getUserProfile = async (req, res) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
     }
 
-    const isFollowing = user.followers.includes(currentUserId);
+    const isFollowing = user.followers.some((id) => idsMatch(id, currentUserId));
     const followersCount = user.followers.length;
     const followingCount = user.following.length;
 
@@ -199,18 +257,28 @@ export const toggleFollowUser = async (req, res) => {
       return res.status(400).json({ success: false, message: "Không thể tự theo dõi chính mình" });
     }
 
-    const isFollowing = targetUser.followers.includes(currentUserId);
+    const isFollowing = targetUser.followers.some((id) => idsMatch(id, currentUserId));
     
     if (isFollowing) {
       // Unfollow
       await User.findByIdAndUpdate(targetUser._id, { $pull: { followers: currentUserId } });
       await User.findByIdAndUpdate(currentUserId, { $pull: { following: targetUser._id } });
-      return res.status(200).json({ success: true, isFollowing: false, message: "Đã hủy theo dõi" });
+      return res.status(200).json({
+        success: true,
+        isFollowing: false,
+        followersCount: Math.max(targetUser.followers.length - 1, 0),
+        message: "Đã hủy theo dõi",
+      });
     } else {
       // Follow
       await User.findByIdAndUpdate(targetUser._id, { $addToSet: { followers: currentUserId } });
       await User.findByIdAndUpdate(currentUserId, { $addToSet: { following: targetUser._id } });
-      return res.status(200).json({ success: true, isFollowing: true, message: "Đã theo dõi" });
+      return res.status(200).json({
+        success: true,
+        isFollowing: true,
+        followersCount: targetUser.followers.length + 1,
+        message: "Đã theo dõi",
+      });
     }
   } catch (error) {
     console.error("Lỗi theo dõi người dùng:", error);
@@ -236,7 +304,7 @@ export const toggleBlockUser = async (req, res) => {
     }
 
     const currentUser = await User.findById(currentUserId);
-    const isBlocked = currentUser.blockedUsers?.includes(targetUserId);
+    const isBlocked = currentUser.blockedUsers?.some((id) => idsMatch(id, targetUserId));
     
     if (isBlocked) {
       // Unblock

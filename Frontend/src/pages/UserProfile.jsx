@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useOutletContext } from "react-router-dom";
+import { useNavigate, useParams, useOutletContext } from "react-router-dom";
 import {
   Award,
   BookOpenCheck,
@@ -17,6 +17,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import api from "@/services/authService";
+import { Button } from "@/components/ui/button";
 
 const emptyDashboard = {
   headline: "",
@@ -45,12 +46,6 @@ const emptyStats = {
   currentStreak: 0,
   contestCount: 0,
 };
-
-const textToList = (value) =>
-  value
-    .split(/\r?\n|,/)
-    .map((item) => item.trim())
-    .filter(Boolean);
 
 const formatNumber = (value) => new Intl.NumberFormat("vi-VN").format(value);
 
@@ -85,6 +80,7 @@ function ReadOnlyEmpty() {
 
 export default function UserProfile() {
   const { username } = useParams();
+  const navigate = useNavigate();
   const { user: currentUser } = useOutletContext();
   const [profileUser, setProfileUser] = useState(null);
   const [stats, setStats] = useState(emptyStats);
@@ -92,12 +88,16 @@ export default function UserProfile() {
   const [followInfo, setFollowInfo] = useState({ isFollowing: false, followersCount: 0, followingCount: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [isTogglingFollow, setIsTogglingFollow] = useState(false);
+  const [error, setError] = useState("");
+  const [followError, setFollowError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadProfile = async () => {
       setIsLoading(true);
+      setError("");
 
       try {
         const res = await api.get(`/users/profile/${username}`);
@@ -127,7 +127,8 @@ export default function UserProfile() {
         }
       } catch (error) {
         if (cancelled) return;
-        console.error(error);
+        setProfileUser(null);
+        setError(error.message || "Không thể tải hồ sơ. Vui lòng thử lại.");
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -140,22 +141,23 @@ export default function UserProfile() {
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [username, reloadKey]);
 
   const toggleFollow = async () => {
     if (isTogglingFollow) return;
     setIsTogglingFollow(true);
+    setFollowError("");
     try {
       const res = await api.put(`/users/profile/${username}/follow`);
       if (res.data.success) {
         setFollowInfo(prev => ({
           ...prev,
           isFollowing: res.data.isFollowing,
-          followersCount: res.data.isFollowing ? prev.followersCount + 1 : prev.followersCount - 1
+          followersCount: res.data.followersCount ?? prev.followersCount,
         }));
       }
     } catch (err) {
-      console.error(err);
+      setFollowError(err.message || "Không thể cập nhật trạng thái theo dõi.");
     } finally {
       setIsTogglingFollow(false);
     }
@@ -212,13 +214,21 @@ export default function UserProfile() {
 
   if (!profileUser) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--bg-secondary)]">
-        <div className="text-[var(--text-secondary)]">Không tìm thấy người dùng</div>
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center bg-[var(--bg-secondary)] px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-xl font-semibold text-[var(--text-primary)]">Không thể hiển thị hồ sơ</h1>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+            {error || "Không tìm thấy người dùng."}
+          </p>
+          <Button className="mt-5" onClick={() => setReloadKey((value) => value + 1)}>
+            Thử lại
+          </Button>
+        </div>
       </div>
     );
   }
 
-  const isCurrentUser = currentUser?.Username === username;
+  const isCurrentUser = currentUser?.username === username;
 
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] p-4 md:p-6 lg:p-8">
@@ -252,28 +262,33 @@ export default function UserProfile() {
             </div>
           </div>
           
-          {!isCurrentUser && (
-            <button 
-              onClick={toggleFollow}
-              disabled={isTogglingFollow}
-              className={`flex items-center gap-2 px-6 py-2 rounded-full font-semibold transition-colors disabled:opacity-50 ${
-                followInfo.isFollowing 
-                  ? "bg-[var(--bg-elevated)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--bg-primary)]" 
-                  : "bg-[#00a2ff] text-white hover:bg-[#0088cc]"
-              }`}
-            >
-              {followInfo.isFollowing ? (
-                <>
-                  <UserCheck size={18} />
-                  <span>Đang theo dõi</span>
-                </>
-              ) : (
-                <>
-                  <UserPlus size={18} />
-                  <span>Theo dõi</span>
-                </>
-              )}
-            </button>
+          {isCurrentUser ? (
+            <Button size="lg" onClick={() => navigate("/dashboard")}>
+              Chỉnh sửa hồ sơ
+            </Button>
+          ) : (
+            <div className="flex flex-col items-start gap-2 md:items-end">
+              <Button
+                onClick={toggleFollow}
+                loading={isTogglingFollow}
+                variant={followInfo.isFollowing ? "outline" : "default"}
+                size="lg"
+                aria-live="polite"
+              >
+                {followInfo.isFollowing ? (
+                  <>
+                    <UserCheck size={18} />
+                    <span>{isTogglingFollow ? "Đang cập nhật" : "Đang theo dõi"}</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={18} />
+                    <span>{isTogglingFollow ? "Đang cập nhật" : "Theo dõi"}</span>
+                  </>
+                )}
+              </Button>
+              {followError && <p className="max-w-xs text-sm text-[var(--danger)]">{followError}</p>}
+            </div>
           )}
         </div>
 

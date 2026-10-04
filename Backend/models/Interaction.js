@@ -30,6 +30,7 @@ const interactionSchema = new mongoose.Schema({
 
 // Index gộp để tối ưu việc tìm kiếm lịch sử tương tác giữa 2 user cụ thể
 interactionSchema.index({ userId: 1, postAuthorId: 1 });
+interactionSchema.index({ createdAt: -1 });
 
 const Interaction = mongoose.model('Interaction', interactionSchema);
 export default Interaction;

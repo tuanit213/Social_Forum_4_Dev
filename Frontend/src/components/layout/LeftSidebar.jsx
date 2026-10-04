@@ -1,29 +1,15 @@
 import { Link, useLocation } from "react-router-dom";
-import {
-  CircleHelp,
-  Home,
-  MessageSquare,
-  Settings,
-  TrendingUp,
-} from "lucide-react";
+import { primaryNavigation } from "@/components/layout/navigation";
 
 export default function LeftSidebar() {
   const location = useLocation();
   const trendingLanguages = ["JavaScript", "TypeScript", "Python", "Go", "Rust"];
   const activeLanguage = new URLSearchParams(location.search).get("language") || "";
 
-  const navItems = [
-    { icon: Home, label: "Home", path: "/" },
-    { icon: MessageSquare, label: "Group Chat", path: "/group-chat" },
-    { icon: CircleHelp, label: "Dev Help", path: "/help" },
-    { icon: TrendingUp, label: "Trending GitHub", path: "/trending" },
-    { icon: Settings, label: "Settings", path: "/settings" },
-  ];
-
   return (
     <aside className="w-64 h-[calc(100vh-64px)] sticky top-16 hidden md:flex flex-col py-4 px-3 overflow-y-auto custom-scrollbar border-r border-[var(--border)]">
       <nav className="flex-1 space-y-1">
-        {navItems.map((item) => {
+        {primaryNavigation.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;
           return (

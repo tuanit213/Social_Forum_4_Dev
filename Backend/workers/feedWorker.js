@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq';
 import mongoose from 'mongoose';
-import redisClient from '../config/redis.js';
+import redisClient, { createRedisConnection } from '../config/redis.js';
 import Post from '../models/Post.js';
 import User from '../models/User.js';
 import Interaction from '../models/Interaction.js';
@@ -13,8 +13,7 @@ import {
   calculateCollaborativeScore 
 } from '../services/recommendationService.js';
 
-// Worker chạy ngầm để tính toán News Feed
-const feedWorker = new Worker('feedQueue', async (job) => {
+export const processFeedJob = async (job) => {
   const { userId } = job.data;
   console.log(`[Worker] Đang tính toán News Feed cho User: ${userId}`);
 
@@ -91,12 +90,41 @@ const feedWorker = new Worker('feedQueue', async (job) => {
     console.error(`[Worker] ❌ Lỗi tính toán Feed cho User ${userId}:`, error);
     throw error;
   }
-}, { 
-  connection: redisClient 
-});
+};
 
-feedWorker.on('failed', (job, err) => {
-  console.error(`Job ${job.id} thất bại:`, err.message);
-});
+let feedWorker = null;
+let feedWorkerConnection = null;
 
-export default feedWorker;
+export const startFeedWorker = async () => {
+  if (feedWorker) return feedWorker;
+
+  feedWorkerConnection = createRedisConnection("social-forum-feed-worker");
+  feedWorker = new Worker('feedQueue', processFeedJob, {
+    connection: feedWorkerConnection,
+    concurrency: Number.parseInt(process.env.FEED_WORKER_CONCURRENCY || "2", 10),
+  });
+
+  feedWorker.on('failed', (job, err) => {
+    console.error(`Feed job ${job?.id || "unknown"} failed: ${err.message}`);
+  });
+  feedWorker.on('error', (error) => {
+    console.error(`Feed worker error: ${error.message}`);
+  });
+
+  await feedWorker.waitUntilReady();
+  return feedWorker;
+};
+
+export const stopFeedWorker = async () => {
+  if (!feedWorker) return;
+  await feedWorker.close();
+  feedWorker = null;
+  if (feedWorkerConnection && !["end", "wait"].includes(feedWorkerConnection.status)) {
+    await feedWorkerConnection.quit();
+  }
+  feedWorkerConnection = null;
+};
+
+export const isFeedWorkerReady = () => Boolean(feedWorker && !feedWorker.closing);
+
+export default startFeedWorker;

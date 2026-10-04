@@ -1,11 +1,14 @@
-import { Bell, MessageSquare, Search, User as UserIcon } from "lucide-react";
+import { Bell, Menu, MessageSquare, Search, User as UserIcon, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { primaryNavigation } from "@/components/layout/navigation";
 
 export default function Navbar({ user }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleSearch = (e) => {
     if (e.key === "Enter" && searchQuery.trim()) {
@@ -15,10 +18,19 @@ export default function Navbar({ user }) {
   };
 
   return (
-    <nav className="fixed top-0 w-full h-16 z-50 flex items-center justify-between px-6 border-b border-[var(--border)] bg-[var(--bg-primary)] transition-colors duration-200">
-      <div className="flex items-center gap-2 w-64 flex-shrink-0">
+    <nav className="fixed top-0 z-50 flex h-16 w-full items-center justify-between border-b border-[var(--border)] bg-[var(--bg-primary)] px-3 transition-colors duration-200 sm:px-6">
+      <div className="flex min-w-0 items-center gap-2 md:w-64 md:flex-shrink-0">
+        <button
+          type="button"
+          aria-label={isMenuOpen ? "Đóng menu" : "Mở menu"}
+          aria-expanded={isMenuOpen}
+          onClick={() => setIsMenuOpen((open) => !open)}
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] md:hidden"
+        >
+          {isMenuOpen ? <X size={21} /> : <Menu size={21} />}
+        </button>
         <h1
-          className="text-xl font-bold cursor-pointer text-[var(--accent)]"
+          className="truncate text-lg font-bold cursor-pointer text-[var(--accent)] sm:text-xl"
           onClick={() => navigate("/")}
         >
           SocialForum
@@ -41,18 +53,23 @@ export default function Navbar({ user }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3 w-64 justify-end">
-        <button className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors relative">
+      <div className="flex items-center justify-end gap-1 sm:gap-3 md:w-64">
+        <button aria-label="Tin nhắn" className="hidden h-10 w-10 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] sm:flex">
           <MessageSquare size={20} />
         </button>
-        <button className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-colors relative">
+        <button aria-label="Thông báo" className="relative hidden h-10 w-10 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] sm:flex">
           <Bell size={20} />
           <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[var(--danger)]" />
         </button>
 
-        <div className="h-6 w-px bg-[var(--border)] mx-1" />
+        <div className="mx-1 hidden h-6 w-px bg-[var(--border)] sm:block" />
 
-        <div className="flex items-center gap-2.5 bg-[var(--bg-secondary)] border border-[var(--border)] pl-1.5 pr-3 py-1.5 rounded-full cursor-pointer hover:bg-[var(--bg-elevated)] transition-colors">
+        <button
+          type="button"
+          aria-label="Mở hồ sơ cá nhân"
+          onClick={() => navigate(`/profile/${user?.username}`)}
+          className="flex items-center gap-2.5 rounded-full border border-[var(--border)] bg-[var(--bg-secondary)] p-1.5 transition-colors hover:bg-[var(--bg-elevated)] sm:pl-1.5 sm:pr-3"
+        >
           <div className="w-7 h-7 rounded-full bg-[var(--accent)] flex items-center justify-center shadow-inner">
             {user?.avatarUrl ? (
               <img src={user.avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover" />
@@ -63,8 +80,30 @@ export default function Navbar({ user }) {
           <span className="text-sm font-medium text-[var(--text-primary)] hidden lg:block">
             {user?.displayName || user?.username}
           </span>
-        </div>
+        </button>
       </div>
+
+      {isMenuOpen && (
+        <div className="absolute left-0 right-0 top-16 border-b border-[var(--border)] bg-[var(--bg-primary)] p-3 shadow-xl md:hidden">
+          <nav aria-label="Điều hướng mobile" className="space-y-1">
+            {primaryNavigation.map((item) => {
+              const Icon = item.icon;
+              const active = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium ${active ? "bg-[var(--bg-elevated)] text-[var(--text-primary)]" : "text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"}`}
+                >
+                  <Icon size={19} />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      )}
     </nav>
   );
 }

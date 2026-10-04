@@ -33,5 +33,8 @@ const commentSchema = new mongoose.Schema({
   timestamps: true // Tự động tạo createdAt, updatedAt
 });
 
+commentSchema.index({ postId: 1, status: 1, createdAt: -1 });
+commentSchema.index({ parentCommentId: 1, createdAt: 1 });
+
 const Comment = mongoose.model('Comment', commentSchema);
 export default Comment;

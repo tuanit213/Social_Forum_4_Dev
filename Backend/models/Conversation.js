@@ -55,6 +55,7 @@ const conversationSchema = new mongoose.Schema(
 
 // Tối ưu hóa truy vấn danh sách hội thoại của một user
 conversationSchema.index({ participants: 1, updatedAt: -1 });
+conversationSchema.index({ pendingMembers: 1, updatedAt: -1 });
 
 const Conversation = mongoose.model("Conversation", conversationSchema);
 

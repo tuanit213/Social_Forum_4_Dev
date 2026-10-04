@@ -1,7 +1,12 @@
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
+import User from "../models/User.js";
 import xss from 'xss';
 import mongoose from 'mongoose';
+
+const idsMatch = (left, right) => left?.toString() === right?.toString();
+const hasParticipant = (conversation, userId) =>
+  conversation?.participants?.some((participantId) => idsMatch(participantId, userId));
 
 // @desc    Lấy danh sách các cuộc hội thoại của user hiện tại
 // @route   GET /api/chat/conversations
@@ -43,6 +48,18 @@ export const getOrCreateConversation = async (req, res, next) => {
     if (!receiverId) {
       return res.status(400).json({ success: false, message: "Thiếu receiverId" });
     }
+    if (!mongoose.Types.ObjectId.isValid(receiverId) || idsMatch(receiverId, senderId)) {
+      return res.status(400).json({ success: false, message: "receiverId không hợp lệ" });
+    }
+    const [sender, receiver] = await Promise.all([
+      User.findById(senderId).select("blockedUsers").lean(),
+      User.findById(receiverId).select("blockedUsers").lean(),
+    ]);
+    if (!receiver) return res.status(404).json({ success: false, message: "Không tìm thấy người dùng" });
+    if (sender?.blockedUsers?.some((id) => idsMatch(id, receiverId)) ||
+        receiver.blockedUsers?.some((id) => idsMatch(id, senderId))) {
+      return res.status(403).json({ success: false, message: "Không thể tạo cuộc trò chuyện với người dùng đã chặn" });
+    }
 
     // Tìm xem đã có conversation 1-1 giữa 2 người này chưa
     let conversation = await Conversation.findOne({
@@ -83,7 +100,7 @@ export const getMessages = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy cuộc trò chuyện" });
     }
     
-    if (!conversation.participants.includes(userId)) {
+    if (!hasParticipant(conversation, userId)) {
       return res.status(403).json({ success: false, message: "Bạn không có quyền đọc cuộc trò chuyện này" });
     }
 
@@ -128,7 +145,7 @@ export const searchMessages = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy cuộc trò chuyện" });
     }
     
-    if (!conversation.participants.includes(userId)) {
+    if (!hasParticipant(conversation, userId)) {
       return res.status(403).json({ success: false, message: "Bạn không có quyền đọc cuộc trò chuyện này" });
     }
 
@@ -506,7 +523,7 @@ export const leaveGroup = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Nhóm không tồn tại" });
     }
 
-    if (!group.participants.includes(userId)) {
+    if (!hasParticipant(group, userId)) {
       return res.status(400).json({ success: false, message: "Bạn không phải là thành viên của nhóm này" });
     }
 
@@ -554,12 +571,12 @@ export const hideConversation = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Không tìm thấy cuộc trò chuyện" });
     }
 
-    if (!conversation.participants.includes(userId)) {
+    if (!hasParticipant(conversation, userId)) {
       return res.status(403).json({ success: false, message: "Bạn không có quyền ẩn cuộc trò chuyện này" });
     }
 
     // Thêm vào mảng deletedBy nếu chưa có
-    if (!conversation.deletedBy.includes(userId)) {
+    if (!conversation.deletedBy.some((deletedById) => idsMatch(deletedById, userId))) {
       conversation.deletedBy.push(userId);
       await conversation.save();
     }

@@ -44,13 +44,22 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  loading = false,
+  children,
+  disabled,
   ...props
 }) {
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
-      {...props} />
+      aria-busy={loading || undefined}
+      disabled={disabled || loading}
+      {...props}
+    >
+      {loading && <span aria-hidden="true" className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />}
+      {children}
+    </ButtonPrimitive>
   );
 }
 

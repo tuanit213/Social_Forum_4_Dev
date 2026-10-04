@@ -76,6 +76,8 @@ postSchema.index({ title: 'text', content: 'text', tags: 'text' }, {
   },
   name: "PostTextIndex"
 });
+postSchema.index({ userId: 1, status: 1, createdAt: -1 });
+postSchema.index({ status: 1, createdAt: -1 });
 
 const Post = mongoose.model('Post', postSchema);
 export default Post;

@@ -1,0 +1,5 @@
+--- BASELINE_FILE
++++ MODIFIED_FILE
+@@
+-week1-baseline
++week1-modified
