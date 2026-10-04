@@ -210,6 +210,59 @@ describe("backend foundation", () => {
     assert.ok(chat.body.conversation.participants.some((participant) => participant._id === bob._id.toString()));
   });
 
+  it("paginates followers and following with safe limits", async () => {
+    const followers = await request(runtime.app)
+      .get("/api/users/profile/followers?page=0&limit=999")
+      .set("Authorization", `Bearer ${aliceToken}`);
+    assert.equal(followers.status, 200);
+    assert.equal(followers.body.pagination.page, 1);
+    assert.equal(followers.body.pagination.limit, 50);
+    assert.ok(Array.isArray(followers.body.users));
+
+    const following = await request(runtime.app)
+      .get("/api/users/profile/following?page=abc&limit=-1")
+      .set("Authorization", `Bearer ${aliceToken}`);
+    assert.equal(following.status, 200);
+    assert.equal(following.body.pagination.page, 1);
+    assert.equal(following.body.pagination.limit, 20);
+    assert.ok(Array.isArray(following.body.users));
+  });
+
+  it("validates profile updates and profile/follow edge cases", async () => {
+    const invalidUpdate = await request(runtime.app)
+      .put("/api/users/me/dashboard")
+      .set("Authorization", `Bearer ${aliceToken}`)
+      .send({ displayName: "Alice", unknownField: true });
+    assert.equal(invalidUpdate.status, 400);
+
+    const update = await request(runtime.app)
+      .put("/api/users/me/dashboard")
+      .set("Authorization", `Bearer ${aliceToken}`)
+      .send({ displayName: "Alice Updated", bio: "Week one profile", coreStack: ["Node.js"] });
+    assert.equal(update.status, 200);
+    assert.equal(update.body.user.displayName, "Alice Updated");
+
+    const reload = await request(runtime.app)
+      .get("/api/users/me/dashboard")
+      .set("Authorization", `Bearer ${aliceToken}`);
+    assert.equal(reload.status, 200);
+    assert.equal(reload.body.user.displayName, "Alice Updated");
+    assert.equal(reload.body.user.bio, "Week one profile");
+
+    const missing = await request(runtime.app)
+      .get("/api/users/profile/user-that-does-not-exist")
+      .set("Authorization", `Bearer ${aliceToken}`);
+    assert.equal(missing.status, 404);
+
+    const selfFollow = await request(runtime.app)
+      .put("/api/users/profile/alice/follow")
+      .set("Authorization", `Bearer ${aliceToken}`);
+    assert.equal(selfFollow.status, 400);
+
+    const anonymous = await request(runtime.app).get("/api/users/me/dashboard");
+    assert.equal(anonymous.status, 401);
+  });
+
   it("requires auth intent for cookie-authenticated mutations", async () => {
     const response = await request(runtime.app).post("/api/auth/refresh");
     assert.equal(response.status, 403);

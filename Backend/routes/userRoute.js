@@ -4,6 +4,8 @@ import {
   getMyProfile,
   updateMyDashboardProfile,
   getUserProfile,
+  getFollowers,
+  getFollowing,
   toggleFollowUser,
 } from "../controllers/userController.js";
 import { verifyToken } from "../middlewares/authMiddleware.js";
@@ -13,6 +15,8 @@ import { validateObjectId } from "../middlewares/validateResource.js";
 const router = express.Router();
 
 router.get("/profile", verifyToken, getMyProfile);
+router.get("/profile/followers", verifyToken, getFollowers);
+router.get("/profile/following", verifyToken, getFollowing);
 router.get("/me/dashboard", verifyToken, getMyDashboardProfile);
 router.put("/me/dashboard", verifyToken, validateDashboardProfile, updateMyDashboardProfile);
 

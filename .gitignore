@@ -4,6 +4,11 @@
 
 node_modules/
 algorithm-sandbox/node_modules/
+graphify-out/
+Backend/graphify-out/
+.playwright-cli/
+output/
+.codex-doc-review/
 dist/
 build/
 
