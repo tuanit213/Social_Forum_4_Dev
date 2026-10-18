@@ -25,6 +25,23 @@ Date: 2026-10-18
 | Existing listeners | Nginx 80/443; LogiRoute services bound to loopback |
 | Isolation | Social Forum uses `/opt/social-forum`, Compose project `social-forum`, loopback ports 15000/18080, and named volume `social_forum_redis` |
 
+## VPS deployment state
+
+| Gate | Result |
+| --- | --- |
+| Docker Engine / Compose | PASS - Docker 29.1.3, Compose 2.40.3 |
+| Swap | PASS - 2 GB active |
+| Frontend image build | PASS |
+| Backend image build | PASS - production dependencies report 0 advisories |
+| Frontend container | PASS - healthy on `127.0.0.1:18080` |
+| Redis container | PASS - healthy, AOF enabled, `noeviction`, no public port |
+| Nginx virtual hosts | PASS - config valid and reloaded without replacing existing sites |
+| Frontend Host smoke | PASS - `Host: tuanai.site` returns HTTP 200 |
+| SPA reload smoke | PASS - `/profile` returns HTTP 200 through the host proxy |
+| Existing LogiRoute services | PASS - all five remain active after deployment |
+| Backend container | BLOCKED - image built but container intentionally not started without a rotated Atlas URI |
+| HTTPS | BLOCKED - domain suspension and incorrect DNS prevent certificate issuance |
+
 ## External blockers
 
 - `tuanai.site` and `api.tuanai.site` currently resolve to `127.0.0.1` through `verification-hold.suspended-domain.com`. HTTPS issuance and real public routing are blocked until the domain is restored and DNS records are changed.
