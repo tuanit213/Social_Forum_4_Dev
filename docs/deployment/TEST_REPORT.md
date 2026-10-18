@@ -33,20 +33,30 @@ Date: 2026-10-18
 | Swap | PASS - 2 GB active |
 | Redis host kernel setting | PASS - `vm.overcommit_memory=1`, persisted in `/etc/sysctl.d/99-social-forum-redis.conf` |
 | Frontend image build | PASS |
-| Backend image build | PASS - production dependencies report 0 advisories |
+| Backend image build | PASS - production dependencies report 0 advisories; application files are owned by the non-root `node` user |
 | Frontend container | PASS - healthy on `127.0.0.1:18080` |
 | Redis container | PASS - healthy, AOF enabled, `noeviction`, no public port |
+| Backend container | PASS - healthy on `127.0.0.1:15000` |
+| Atlas connectivity | PASS - dedicated production user, VPS IP allowlisted, database state ready |
+| Backend readiness | PASS - MongoDB, Redis, BullMQ queue, and BullMQ worker are ready |
 | Nginx virtual hosts | PASS - config valid and reloaded without replacing existing sites |
-| Frontend Host smoke | PASS - `Host: tuanai.site` returns HTTP 200 |
-| SPA reload smoke | PASS - `/profile` returns HTTP 200 through the host proxy |
+| Public DNS | PASS - root, `www`, and `api` resolve through Cloudflare to the VPS |
+| HTTP redirect | PASS - `http://tuanai.site/login` returns HTTP 301 to HTTPS |
+| Frontend HTTPS smoke | PASS - root and `www` return HTTP 200 |
+| SPA reload smoke | PASS - a deep application route returns HTTP 200 |
+| Public API liveness | PASS - `https://api.tuanai.site/health/live` returns HTTP 200 |
+| Public API readiness | PASS - `https://api.tuanai.site/health/ready` returns HTTP 200 |
+| Database-backed API smoke | PASS - invalid sign-in reaches Atlas-backed auth and returns the expected HTTP 401 |
+| Production CORS | PASS - allows `https://tuanai.site` with credentials |
+| TLS | PASS - Let's Encrypt certificate installed for root, `www`, and `api`; expires 2027-01-16 |
+| Social Forum renewal dry-run | PASS |
+| LogiRoute IP certificate renewal dry-run | PASS with its dedicated Certbot 5.8 timer |
 | Existing LogiRoute services | PASS - all five remain active after deployment |
-| Isolated stack restart | PASS - frontend and Redis recovered healthy; Redis returned `PONG` and AOF status remained `ok` |
+| Isolated stack restart | PASS - frontend, backend, and Redis recovered healthy; Redis returned `PONG` and AOF status remained `ok` |
 | Post-fix Redis log | PASS - no memory-overcommit warning after restart |
-| Backend container | BLOCKED - image built but container intentionally not started without a rotated Atlas URI |
-| HTTPS | BLOCKED - domain suspension and incorrect DNS prevent certificate issuance |
 
-## External blockers
+## Production notes
 
-- `tuanai.site` and `api.tuanai.site` currently resolve to `127.0.0.1` through `verification-hold.suspended-domain.com`. HTTPS issuance and real public routing are blocked until the domain is restored and DNS records are changed.
-- A newly rotated MongoDB Atlas URI has not been supplied. The old URI is intentionally not used. Atlas must allow `157.66.100.124/32`.
-- End-to-end production auth, feed, chat, and BullMQ verification remains blocked until Atlas connectivity is configured.
+- Secrets are stored only in `/opt/social-forum/shared/.env` with mode `600`; they are not committed to Git.
+- The shared VPS keeps separate certificate renewal paths: the system Certbot manages Social Forum domains, while LogiRoute's dedicated Certbot 5.8 timer manages its short-lived IP certificate.
+- Cloudflare proxying is enabled for root, `www`, and `api`.
