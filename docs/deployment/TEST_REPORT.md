@@ -31,6 +31,7 @@ Date: 2026-10-18
 | --- | --- |
 | Docker Engine / Compose | PASS - Docker 29.1.3, Compose 2.40.3 |
 | Swap | PASS - 2 GB active |
+| Redis host kernel setting | PASS - `vm.overcommit_memory=1`, persisted in `/etc/sysctl.d/99-social-forum-redis.conf` |
 | Frontend image build | PASS |
 | Backend image build | PASS - production dependencies report 0 advisories |
 | Frontend container | PASS - healthy on `127.0.0.1:18080` |
@@ -40,6 +41,7 @@ Date: 2026-10-18
 | SPA reload smoke | PASS - `/profile` returns HTTP 200 through the host proxy |
 | Existing LogiRoute services | PASS - all five remain active after deployment |
 | Isolated stack restart | PASS - frontend and Redis recovered healthy; Redis returned `PONG` and AOF status remained `ok` |
+| Post-fix Redis log | PASS - no memory-overcommit warning after restart |
 | Backend container | BLOCKED - image built but container intentionally not started without a rotated Atlas URI |
 | HTTPS | BLOCKED - domain suspension and incorrect DNS prevent certificate issuance |
 

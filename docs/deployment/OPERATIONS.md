@@ -30,6 +30,14 @@ curl -fsS http://127.0.0.1:15000/health/ready
 curl -fsS http://127.0.0.1:18080/healthz
 ```
 
+Redis persistence depends on `vm.overcommit_memory=1`. Confirm the live and
+persistent settings after provisioning or a host reboot:
+
+```bash
+sysctl vm.overcommit_memory
+cat /etc/sysctl.d/99-social-forum-redis.conf
+```
+
 ## Restart
 
 ```bash
