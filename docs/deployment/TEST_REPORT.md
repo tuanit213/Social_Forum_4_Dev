@@ -53,6 +53,7 @@ Date: 2026-10-18
 | LogiRoute IP certificate renewal dry-run | PASS with its dedicated Certbot 5.8 timer |
 | Existing LogiRoute services | PASS - all five remain active after deployment |
 | Isolated stack restart | PASS - frontend, backend, and Redis recovered healthy; Redis returned `PONG` and AOF status remained `ok` |
+| Deployment startup gate | PASS - release script retries frontend health and full backend readiness during container warm-up |
 | Post-fix Redis log | PASS - no memory-overcommit warning after restart |
 
 ## Production notes
