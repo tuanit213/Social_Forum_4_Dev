@@ -39,6 +39,7 @@ Date: 2026-10-18
 | Frontend Host smoke | PASS - `Host: tuanai.site` returns HTTP 200 |
 | SPA reload smoke | PASS - `/profile` returns HTTP 200 through the host proxy |
 | Existing LogiRoute services | PASS - all five remain active after deployment |
+| Isolated stack restart | PASS - frontend and Redis recovered healthy; Redis returned `PONG` and AOF status remained `ok` |
 | Backend container | BLOCKED - image built but container intentionally not started without a rotated Atlas URI |
 | HTTPS | BLOCKED - domain suspension and incorrect DNS prevent certificate issuance |
 
