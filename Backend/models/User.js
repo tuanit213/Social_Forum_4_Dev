@@ -10,7 +10,8 @@ const userSchema = new mongoose.Schema({
     },
     hashPassword: {
         type: String,
-        required: true
+        required: true,
+        select: false
     },
     email: {
         type: String,
@@ -157,8 +158,6 @@ const userSchema = new mongoose.Schema({
     }
 )
 
-userSchema.index({ email: 1 });
-userSchema.index({ Username: 1 });
 userSchema.index({ role: 1, status: 1, createdAt: -1 });
 
 const User = mongoose.model("User", userSchema);

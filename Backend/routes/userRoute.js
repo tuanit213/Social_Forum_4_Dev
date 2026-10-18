@@ -4,14 +4,19 @@ import {
   getMyProfile,
   updateMyDashboardProfile,
   getUserProfile,
+  getFollowers,
+  getFollowing,
   toggleFollowUser,
 } from "../controllers/userController.js";
 import { verifyToken } from "../middlewares/authMiddleware.js";
 import { validateDashboardProfile } from "../middlewares/validateUserRequest.js";
+import { validateObjectId } from "../middlewares/validateResource.js";
 
 const router = express.Router();
 
 router.get("/profile", verifyToken, getMyProfile);
+router.get("/profile/followers", verifyToken, getFollowers);
+router.get("/profile/following", verifyToken, getFollowing);
 router.get("/me/dashboard", verifyToken, getMyDashboardProfile);
 router.put("/me/dashboard", verifyToken, validateDashboardProfile, updateMyDashboardProfile);
 
@@ -20,6 +25,6 @@ router.put("/profile/:username/follow", verifyToken, toggleFollowUser);
 
 import { getAllUsers, toggleBlockUser } from "../controllers/userController.js";
 router.get("/", verifyToken, getAllUsers);
-router.put("/:id/block", verifyToken, toggleBlockUser);
+router.put("/:id/block", verifyToken, validateObjectId("id"), toggleBlockUser);
 
 export default router;

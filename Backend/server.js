@@ -1,232 +1,184 @@
-import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
-import cookieParser from "cookie-parser";
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
-import connectDB, { requireDBConnection } from "./config/db.js";
-import { notFound, errorHandler } from "./middlewares/errorMiddleware.js";
-import authRoutes from "./routes/authRoute.js";
-import postRoutes from "./routes/postRoute.js";
-import userRoutes from "./routes/userRoute.js";
-import commentRoutes from "./routes/commentRoute.js";
-import chatRoutes from "./routes/chatRoute.js";
-import sampleRoutes from "./routes/sampleRoutes.js";
-import adminRoutes from "./routes/adminRoute.js";
-import searchRoutes from "./routes/searchRoute.js";
-import { getAllowedOrigins } from "./utils/securityConfig.js";
-import { Server } from "socket.io";
+import "dotenv/config";
 import http from "http";
-import Message from "./models/Message.js";
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
+import { Server } from "socket.io";
+import xss from "xss";
+import { createApp } from "./app.js";
+import connectDB, { disconnectDB } from "./config/db.js";
+import { connectRedis, disconnectRedis } from "./config/redis.js";
+import { startFeedQueue, stopFeedQueue } from "./config/queue.js";
+import { startFeedWorker, stopFeedWorker } from "./workers/feedWorker.js";
 import Conversation from "./models/Conversation.js";
+import Message from "./models/Message.js";
 import User from "./models/User.js";
-import xss from 'xss';
-import "./workers/feedWorker.js"; // Khởi chạy BullMQ Worker
+import { getAllowedOrigins, getJwtSecret } from "./utils/securityConfig.js";
 
-dotenv.config();
+const PORT = Number.parseInt(process.env.PORT || "5000", 10);
+const idsMatch = (left, right) => left?.toString() === right?.toString();
+const isParticipant = (conversation, userId) =>
+  conversation?.participants?.some((participant) => idsMatch(participant, userId));
 
-await connectDB();
-
-const app = express();
-const httpServer = http.createServer(app);
-const allowedOrigins = getAllowedOrigins();
-
-app.disable("x-powered-by");
-
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginResourcePolicy: false,
-  }),
-);
-
-app.use(express.json({ limit: "100kb" }));
-app.use(express.urlencoded({ extended: false, limit: "100kb", parameterLimit: 50 }));
-app.use(cookieParser());
-
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(null, false);
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  }),
-);
-
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 1000,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Qua nhieu yeu cau tu IP nay, vui long thu lai sau 15 phut." },
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Dang nhap/dang ky qua nhieu lan, vui long thu lai sau." },
-});
-
-app.use("/api", globalLimiter);
-
-app.get("/", (req, res) => {
-  res.send("API Server is running...");
-});
-
-app.use("/api/sample", sampleRoutes);
-app.use("/api/auth", authLimiter, requireDBConnection, authRoutes);
-app.use("/api/posts", requireDBConnection, postRoutes);
-app.use("/api/comments", requireDBConnection, commentRoutes);
-app.use("/api/users", requireDBConnection, userRoutes);
-app.use("/api/chat", requireDBConnection, chatRoutes);
-app.use("/api/admin", requireDBConnection, adminRoutes);
-app.use("/api/search", requireDBConnection, searchRoutes);
-
-app.use(notFound);
-app.use(errorHandler);
-
-const PORT = process.env.PORT || 5000;
-
-// Socket.IO Setup
-const io = new Server(httpServer, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
-
-app.set("io", io);
-
-// Middleware xác thực cho Socket.IO
-io.use(async (socket, next) => {
-  try {
-    const token = socket.handshake.auth?.token;
-    if (!token) {
-      return next(new Error("Authentication error: No token provided"));
-    }
-
-    // Import jwt ở trên cùng, tạm dùng cách require hoặc import (do ESM)
-    // Sẽ cần bổ sung import jwt from "jsonwebtoken"; và getJwtSecret ở phần đầu file
-    const jwt = await import("jsonwebtoken");
-    const { getJwtSecret } = await import("./utils/securityConfig.js");
-    
-    const jwtSecret = getJwtSecret();
-    const decoded = jwt.default.verify(token, jwtSecret);
-    
-    socket.user = decoded; // { userId, username }
-    next();
-  } catch (err) {
-    console.error("Socket Auth Error:", err.message);
-    next(new Error("Authentication error: Invalid token"));
-  }
-});
-
-io.on("connection", (socket) => {
-  const userId = socket.user.userId;
-  console.log(`Socket connected: ${socket.id}, User: ${userId}`);
-
-  // Tự động cho user join vào room riêng của họ
-  socket.join(userId);
-  console.log(`User ${userId} automatically joined room ${userId}`);
-
-  socket.on("send_message", async (data) => {
-    // Bỏ qua data.senderId từ client, sử dụng userId từ token đã xác thực
-    const senderId = socket.user.userId;
-    
+export const attachSocketHandlers = (io) => {
+  io.use(async (socket, next) => {
     try {
-      if (!data.conversationId) return;
-      if (!data.content || typeof data.content !== 'string' || !data.content.trim()) return;
-
-      const safeContent = xss(data.content.trim());
-
-      // Lấy danh sách thành viên trước
-      const conversation = await Conversation.findById(data.conversationId);
-      if (!conversation) return;
-
-      // Xử lý kiểm tra Block trong chat 1-1
-      if (!conversation.isGroup) {
-        const partnerId = conversation.participants.find(p => p.toString() !== senderId);
-        if (partnerId) {
-          const [sender, partner] = await Promise.all([
-            User.findById(senderId),
-            User.findById(partnerId)
-          ]);
-
-          if (sender?.blockedUsers?.includes(partnerId)) {
-            socket.emit("receive_error", { message: "Bạn đã chặn người dùng này." });
-            return;
-          }
-          if (partner?.blockedUsers?.includes(senderId)) {
-            socket.emit("receive_error", { message: "Bạn đã bị người này chặn." });
-            return;
-          }
-        }
+      const token = socket.handshake.auth?.token;
+      if (!token) return next(new Error("Authentication error: No token provided"));
+      const decoded = jwt.verify(token, getJwtSecret());
+      if (!decoded.userId) return next(new Error("Authentication error: Invalid token"));
+      const currentUser = await User.findById(decoded.userId).select("status").lean();
+      if (!currentUser || ["banned", "suspended"].includes(currentUser.status)) {
+        return next(new Error("Authentication error: Account unavailable"));
       }
+      socket.user = decoded;
+      return next();
+    } catch (error) {
+      console.error("Socket auth error", error.name, error.message);
+      return next(new Error("Authentication error: Invalid token"));
+    }
+  });
 
-      // Lưu message vào DB
-      const newMessage = await Message.create({
-        conversationId: data.conversationId,
-        senderId: senderId,
-        content: safeContent,
-      });
+  io.on("connection", (socket) => {
+    const userId = socket.user.userId.toString();
+    socket.join(userId);
 
-      if (conversation) {
-        conversation.lastMessage = newMessage._id;
-        
-        // Khi có tin nhắn mới, bỏ ẩn cuộc hội thoại với tất cả mọi người
-        if (conversation.deletedBy && conversation.deletedBy.length > 0) {
-          conversation.deletedBy = [];
+    socket.on("send_message", async (data = {}) => {
+      try {
+        const { conversationId, content } = data;
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+          return socket.emit("receive_error", { message: "Conversation id không hợp lệ" });
         }
-        
-        // Tăng unreadCount cho tất cả trừ người gửi
-        conversation.participants.forEach(pId => {
-          const pIdStr = pId.toString();
-          if (pIdStr !== senderId) {
-            const currentCount = conversation.unreadCounts.get(pIdStr) || 0;
-            conversation.unreadCounts.set(pIdStr, currentCount + 1);
+        if (typeof content !== "string" || !content.trim() || content.length > 10000) {
+          return socket.emit("receive_error", { message: "Nội dung tin nhắn không hợp lệ" });
+        }
+
+        const conversation = await Conversation.findById(conversationId);
+        if (!conversation) return socket.emit("receive_error", { message: "Không tìm thấy cuộc trò chuyện" });
+        if (!isParticipant(conversation, userId)) {
+          return socket.emit("receive_error", { message: "Bạn không có quyền gửi tin nhắn" });
+        }
+
+        if (!conversation.isGroup) {
+          const partnerId = conversation.participants.find((participant) => !idsMatch(participant, userId));
+          const [sender, partner] = await Promise.all([
+            User.findById(userId).select("blockedUsers").lean(),
+            User.findById(partnerId).select("blockedUsers").lean(),
+          ]);
+          if (sender?.blockedUsers?.some((id) => idsMatch(id, partnerId))) {
+            return socket.emit("receive_error", { message: "Bạn đã chặn người dùng này." });
+          }
+          if (partner?.blockedUsers?.some((id) => idsMatch(id, userId))) {
+            return socket.emit("receive_error", { message: "Bạn đã bị người này chặn." });
+          }
+        }
+
+        const newMessage = await Message.create({
+          conversationId: conversation._id,
+          senderId: userId,
+          content: xss(content.trim()),
+        });
+        conversation.lastMessage = newMessage._id;
+        conversation.deletedBy = [];
+        conversation.participants.forEach((participantId) => {
+          if (!idsMatch(participantId, userId)) {
+            const key = participantId.toString();
+            conversation.unreadCounts.set(key, (conversation.unreadCounts.get(key) || 0) + 1);
           }
         });
-        
         await conversation.save();
-
-        // Phát tin nhắn cho tất cả thành viên trong nhóm (kể cả người gửi)
-        conversation.participants.forEach(participantId => {
+        conversation.participants.forEach((participantId) => {
           io.to(participantId.toString()).emit("receive_message", newMessage);
         });
+      } catch (error) {
+        console.error("Socket send_message error", error.name, error.message);
+        socket.emit("receive_error", { message: "Không thể gửi tin nhắn" });
       }
+    });
 
-    } catch (error) {
-      console.error("Socket send_message error:", error);
-    }
+    socket.on("read_conversation", async (conversationId) => {
+      try {
+        if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+          return socket.emit("receive_error", { message: "Conversation id không hợp lệ" });
+        }
+        const conversation = await Conversation.findOne({ _id: conversationId, participants: userId }).select("_id");
+        if (!conversation) {
+          return socket.emit("receive_error", { message: "Bạn không có quyền đọc cuộc trò chuyện này" });
+        }
+        await Conversation.updateOne(
+          { _id: conversation._id, participants: userId },
+          { $set: { [`unreadCounts.${userId}`]: 0 } },
+        );
+      } catch (error) {
+        console.error("Socket read_conversation error", error.name, error.message);
+        socket.emit("receive_error", { message: "Không thể đánh dấu đã đọc" });
+      }
+    });
   });
+};
 
-  // Sự kiện khi đọc tin nhắn (từ frontend báo lên)
-  socket.on("read_conversation", async (conversationId) => {
+export const createHttpRuntime = () => {
+  const io = new Server({
+    cors: { origin: getAllowedOrigins(), methods: ["GET", "POST"], credentials: true },
+  });
+  attachSocketHandlers(io);
+  const app = createApp({ io });
+  const httpServer = http.createServer(app);
+  io.attach(httpServer);
+  return { app, io, httpServer };
+};
+
+const closeHttpServer = (server) =>
+  new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+const closeSocketServer = (io) => new Promise((resolve) => io.close(resolve));
+
+export const startServer = async () => {
+  const runtime = createHttpRuntime();
+  let listening = false;
+  let shuttingDown = false;
+
+  const shutdown = async (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`Received ${signal}, shutting down`);
     try {
-      const userId = socket.user.userId;
-      await Conversation.updateOne(
-        { _id: conversationId },
-        { $set: { [`unreadCounts.${userId}`]: 0 } }
-      );
-    } catch (err) {
-      console.error("read_conversation error", err);
+      await closeSocketServer(runtime.io);
+      if (listening && runtime.httpServer.listening) await closeHttpServer(runtime.httpServer);
+      await stopFeedWorker();
+      await stopFeedQueue();
+      await disconnectRedis();
+      await disconnectDB();
+    } catch (error) {
+      console.error("Shutdown error", error.name, error.message);
+      process.exitCode = 1;
     }
-  });
+  };
 
-  socket.on("disconnect", () => {
-    console.log(`Socket disconnected: ${socket.id}`);
-  });
-});
+  process.once("SIGINT", () => void shutdown("SIGINT"));
+  process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
-httpServer.listen(PORT, () => {
-  console.log(`Server is running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-});
+  try {
+    await connectDB();
+    await connectRedis();
+    await startFeedQueue();
+    await startFeedWorker();
+    await new Promise((resolve, reject) => {
+      runtime.httpServer.once("error", reject);
+      runtime.httpServer.listen(PORT, () => {
+        listening = true;
+        console.log(`Server running on port ${PORT}`);
+        resolve();
+      });
+    });
+    return { ...runtime, shutdown };
+  } catch (error) {
+    console.error("Startup failed", error.message);
+    await shutdown("STARTUP_FAILURE");
+    throw error;
+  }
+};
+
+if (process.argv[1] && process.argv[1].endsWith("server.js")) {
+  startServer().catch(() => {
+    process.exitCode = 1;
+  });
+}

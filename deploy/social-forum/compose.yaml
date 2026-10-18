@@ -1,0 +1,78 @@
+name: social-forum
+
+services:
+  redis:
+    image: redis:7.4-alpine
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory-policy
+      - noeviction
+    restart: unless-stopped
+    volumes:
+      - social_forum_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    mem_limit: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  backend:
+    build:
+      context: ../../Backend
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      FEED_WORKER_CONCURRENCY: 1
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:15000:5000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5000/health/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    mem_limit: 320m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  frontend:
+    build:
+      context: ../../Frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://api.tuanai.site/api}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL:-https://api.tuanai.site}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18080:80"
+    mem_limit: 64m
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  social_forum_redis:
+    name: social_forum_redis

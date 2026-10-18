@@ -80,3 +80,22 @@ export const requireAdmin = async (req, res, next) => {
     return res.status(500).json({ message: "Lỗi hệ thống" });
   }
 };
+
+export const requireAuthIntent = (req, res, next) => {
+  if (req.get("X-CSRF-Intent") !== "auth") {
+    return res.status(403).json({ message: "Thiếu auth intent header" });
+  }
+
+  const origin = req.get("Origin");
+  if (origin) {
+    const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (!allowedOrigins.includes(origin)) {
+      return res.status(403).json({ message: "Origin không được phép" });
+    }
+  }
+
+  next();
+};

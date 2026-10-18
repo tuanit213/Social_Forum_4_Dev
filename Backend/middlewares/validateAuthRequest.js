@@ -54,6 +54,7 @@ export const validateBody = (schema) => (req, res, next) => {
 
   if (!parsed.success) {
     return res.status(400).json({
+      success: false,
       message: "Du lieu dau vao khong hop le",
       errors: parsed.error.issues.map((issue) => ({
         field: issue.path.join(".") || "body",

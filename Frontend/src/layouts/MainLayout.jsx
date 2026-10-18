@@ -47,13 +47,13 @@ export default function MainLayout() {
 
   return (
     <SocketProvider user={user}>
-      <div className="min-h-screen w-full bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans overflow-hidden transition-colors duration-200">
+      <div className="min-h-screen w-full bg-[var(--bg-primary)] text-[var(--text-primary)] font-sans overflow-x-hidden transition-colors duration-200">
         <Navbar user={user} />
 
-        <div className="relative z-10 max-w-[1400px] mx-auto w-full pt-16 flex justify-center">
+        <div className="relative z-10 mx-auto flex w-full max-w-[1400px] justify-center pt-16">
           <LeftSidebar />
 
-          <main className={`flex-1 w-full min-w-0 border-x border-[var(--border)] min-h-[calc(100vh-64px)] ${isChatPage ? '' : 'max-w-2xl'}`}>
+          <main className={`min-h-[calc(100vh-64px)] min-w-0 w-full flex-1 border-x border-[var(--border)] ${isChatPage ? '' : 'max-w-4xl'}`}>
             <Outlet context={{ user }} />
           </main>
 

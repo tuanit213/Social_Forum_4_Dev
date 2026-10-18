@@ -167,14 +167,16 @@ function ModalShell({ title, error, onClose, onSubmit, children }) {
   );
 }
 
-function FormActions({ onCancel }) {
+function FormActions({ onCancel, isSaving }) {
   return (
     <div className="mt-4 flex items-center gap-2">
       <button
         type="submit"
+        disabled={isSaving}
+        aria-busy={isSaving}
         className="rounded-md bg-[var(--success)] px-3 py-[6px] font-sans text-xs font-semibold leading-5 text-white transition-colors hover:brightness-110 active:translate-y-px"
       >
-        Save
+        {isSaving ? "Saving..." : "Save"}
       </button>
       <button
         type="button"
@@ -227,6 +229,7 @@ export default function ProfileDashboard() {
   const [profileData, setProfileData] = useState(emptyDashboard);
   const [isLoading, setIsLoading] = useState(true);
   const [saveError, setSaveError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [activeForm, setActiveForm] = useState(null);
   const [profileDraft, setProfileDraft] = useState({
     displayName: "",
@@ -419,6 +422,7 @@ export default function ProfileDashboard() {
   const saveProfile = async (event) => {
     event.preventDefault();
     setSaveError("");
+    setIsSaving(true);
 
     const payload = buildPayload({
       displayName: profileDraft.displayName.trim(),
@@ -445,12 +449,15 @@ export default function ProfileDashboard() {
       console.error("Save profile error:", error.response?.data || error);
       const msg = error.response?.data?.message || error.response?.data?.errors?.[0]?.msg || error.message;
       setSaveError(msg || "Không lưu được profile");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const saveFocus = async (event) => {
     event.preventDefault();
     setSaveError("");
+    setIsSaving(true);
 
     const payload = buildPayload({
       headline: focusDraft.headline.trim(),
@@ -467,6 +474,8 @@ export default function ProfileDashboard() {
       console.error("Save focus error:", error.response?.data || error);
       const msg = error.response?.data?.message || error.response?.data?.errors?.[0]?.msg || error.message;
       setSaveError(msg || "Không lưu được Experience & Focus");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -809,7 +818,7 @@ export default function ProfileDashboard() {
             </div>
 
             <div className="mt-6 border-t border-[var(--border)] pt-4">
-              <FormActions onCancel={closeForm} />
+              <FormActions onCancel={closeForm} isSaving={isSaving} />
             </div>
           </form>
         </div>
@@ -842,7 +851,7 @@ export default function ProfileDashboard() {
               onChange={(value) => setFocusDraft((prev) => ({ ...prev, topContribution: value }))}
             />
           </div>
-          <FormActions onCancel={closeForm} />
+          <FormActions onCancel={closeForm} isSaving={isSaving} />
         </ModalShell>
       )}
     </div>

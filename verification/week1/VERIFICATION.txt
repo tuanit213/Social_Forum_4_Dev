@@ -1,0 +1,67 @@
+WEEK 1 EVIDENCE LEDGER
+
+Changed branch/field: codex/week1-completion / Profile-Follow pagination, ownership, shared shell, profile UI states, QA docs
+
+MODIFIED_FILE: verification/week1/MODIFIED_FILE
+DIFF_FILE: verification/week1/DIFF_FILE
+VERIFICATION_FILE: verification/week1/VERIFICATION.txt
+ROLLBACK_FILE: verification/week1/ROLLBACK.sh
+
+BASELINE
+- command: Get-FileHash verification/week1/BASELINE_FILE -Algorithm SHA256
+  input: verification/week1/BASELINE_FILE
+  result: baseline fixture hash recorded before rollback test
+  exit: 0
+
+MODIFIED
+- command: Get-Content verification/week1/MODIFIED_FILE
+  input: verification/week1/MODIFIED_FILE
+  result: week1-modified
+  exit: 0
+
+TESTS
+- command: Backend npm run syntax; node --check all Backend/**/*.js
+  input: current branch source
+  result: pass
+  exit: 0
+- command: Backend npm test
+  input: isolated MongoDB and Redis runtime
+  result: 12 passed, 0 failed
+  exit: 0
+- command: Frontend npm run lint
+  input: current branch source
+  result: pass with existing warnings
+  exit: 0
+- command: Frontend NODE_OPTIONS=--max-old-space-size=4096 npm run build
+  input: current branch source
+  result: production build succeeded
+  exit: 0
+- command: authenticated browser profile smoke at 375, 768, 1440
+  input: isolated test account; no credentials recorded
+  result: no horizontal overflow; owner edit visible; follow hidden; mobile menu opens and closes
+  exit: 0
+- command: Backend npm audit --omit=dev
+  input: current lockfile
+  result: 0 production vulnerabilities
+  exit: 0
+- command: Frontend npm audit --omit=dev
+  input: current lockfile
+  result: 10 transitive/tooling vulnerabilities reported
+  exit: 1
+
+ROLLBACK
+- command: sh verification/week1/ROLLBACK.sh verification/week1/MODIFIED_FILE.copy
+  input: copy of MODIFIED_FILE
+  result: restored target equals BASELINE_FILE; restored content is week1-baseline
+  exit: 0
+
+HASHES AND RESTORED BEHAVIOR
+- baseline hash: 9933C5C3F7EC1CA30F37D5BA56C7760151BA69D4D7C99A6EC5444E0F4BAC7F82
+- modified hash: C26FC30BE2441F4A8811AF921DEA9355D02091476D7E5876894C6892176249E1
+- rollback command: sh verification/week1/ROLLBACK.sh verification/week1/MODIFIED_FILE.copy
+- rollback input: verification/week1/MODIFIED_FILE.copy
+- rollback literal output: week1-baseline
+- rollback stderr: <empty>
+- rollback exit: 0
+- restored hash: 9933C5C3F7EC1CA30F37D5BA56C7760151BA69D4D7C99A6EC5444E0F4BAC7F82
+- restored behavior/status: content equals BASELINE_FILE; status 0

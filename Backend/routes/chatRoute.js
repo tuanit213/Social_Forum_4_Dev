@@ -19,6 +19,14 @@ import {
 } from "../controllers/chatController.js";
 import { verifyToken } from "../middlewares/authMiddleware.js";
 import { validateObjectId } from "../middlewares/validateResource.js";
+import {
+  conversationCreateSchema,
+  groupCreateSchema,
+  groupInviteSchema,
+  groupRenameSchema,
+  messageUpdateSchema,
+  validateApiBody,
+} from "../middlewares/validateApiRequest.js";
 
 const router = express.Router();
 
@@ -26,15 +34,15 @@ const router = express.Router();
 router.use(verifyToken);
 
 router.get("/conversations", getConversations);
-router.post("/conversations", getOrCreateConversation);
+router.post("/conversations", validateApiBody(conversationCreateSchema), getOrCreateConversation);
 router.get("/conversations/:conversationId/messages", validateObjectId("conversationId"), getMessages);
 router.get("/conversations/:conversationId/search", validateObjectId("conversationId"), searchMessages);
 router.delete("/conversations/:id/hide", validateObjectId("id"), hideConversation);
 
 // Group Chat Routes
-router.post("/groups", createGroup);
-router.put("/groups/:groupId/rename", validateObjectId("groupId"), renameGroup);
-router.post("/groups/:groupId/invite", validateObjectId("groupId"), inviteToGroup);
+router.post("/groups", validateApiBody(groupCreateSchema), createGroup);
+router.put("/groups/:groupId/rename", validateObjectId("groupId"), validateApiBody(groupRenameSchema), renameGroup);
+router.post("/groups/:groupId/invite", validateObjectId("groupId"), validateApiBody(groupInviteSchema), inviteToGroup);
 router.put("/groups/:groupId/accept", validateObjectId("groupId"), acceptGroupInvite);
 router.put("/groups/:groupId/reject", validateObjectId("groupId"), rejectGroupInvite);
 router.delete("/groups/:groupId/kick/:memberId", validateObjectId("groupId"), validateObjectId("memberId"), kickFromGroup);
@@ -43,7 +51,7 @@ router.put("/groups/:groupId/leave", validateObjectId("groupId"), leaveGroup);
 router.delete("/groups/:groupId", validateObjectId("groupId"), deleteGroup);
 
 // Edit/Delete Messages
-router.put("/messages/:messageId", validateObjectId("messageId"), editMessage);
+router.put("/messages/:messageId", validateObjectId("messageId"), validateApiBody(messageUpdateSchema), editMessage);
 router.delete("/messages/:messageId", validateObjectId("messageId"), deleteMessage);
 
 export default router;
