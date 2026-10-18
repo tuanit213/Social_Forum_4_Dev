@@ -16,7 +16,7 @@ export const SocketProvider = ({ user, children }) => {
       const userId = user._id || user.id;
       const token = getAccessToken();
       // Kết nối tới server
-      const socketUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace("/api", "") : "http://localhost:5000";
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
       
       const newSocket = io(socketUrl, {
         withCredentials: true,

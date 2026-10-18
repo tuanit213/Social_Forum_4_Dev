@@ -33,6 +33,9 @@ export const createApp = ({ io } = {}) => {
   const app = express();
   const allowedOrigins = getAllowedOrigins();
   app.disable("x-powered-by");
+  if (process.env.NODE_ENV === "production") {
+    app.set("trust proxy", 1);
+  }
   app.set("io", io);
   app.set("runtimeHealth", getRuntimeHealth);
   app.use(helmet({ crossOriginResourcePolicy: false }));

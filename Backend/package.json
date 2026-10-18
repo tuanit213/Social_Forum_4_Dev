@@ -6,6 +6,7 @@
   "types": "module",
   "scripts": {
     "dev": "nodemon server.js",
+    "start": "node server.js",
     "test": "node --test test/*.test.js",
     "syntax": "node --check server.js && node --check app.js"
   },
